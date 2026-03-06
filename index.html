@@ -113,11 +113,22 @@
     /* ── USER CHIP ── */
     .user-chip{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--card2);border:1px solid var(--border);border-radius:9px;margin-bottom:8px}
     @media(max-width:480px){.grid3{grid-template-columns:1fr 1fr}.metric-grid{grid-template-columns:1fr 1fr}}
+    /* ── TOAST ── */
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);z-index:99999;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600;white-space:nowrap;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    #toast.ok{background:var(--green);color:#fff}
+    #toast.err{background:#cc0000;color:#fff}
+    /* ── SAVE FEEDBACK ── */
+    .save-feedback{font-size:12px;margin-top:6px;min-height:18px;display:block}
+    .save-feedback.ok{color:var(--green)}
+    .save-feedback.err{color:var(--red-light)}
   </style>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
+
+<div id="toast"></div>
 
 <!-- ═══ LOGIN ═══ -->
 <div id="login-screen">
@@ -168,6 +179,42 @@
 <div id="page-config" class="page"></div>
 
 <script>
+// ════════════════════════════════════════
+// FEEDBACK VISUAL (toast + inline)
+// ════════════════════════════════════════
+let _toastTimer=null;
+function showToast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  if(!t) return;
+  clearTimeout(_toastTimer);
+  t.textContent=(type==='ok'?'✓ ':' ✕ ')+msg;
+  t.className='show '+type;
+  _toastTimer=setTimeout(()=>{t.className='';},3000);
+}
+// Seta feedback inline em um elemento (por id)
+function setFeedback(elId,msg,type){
+  const el=document.getElementById(elId);
+  if(!el) return;
+  el.textContent=msg;
+  el.className='save-feedback '+(type||'ok');
+  if(type==='ok') setTimeout(()=>{if(el) el.textContent='';},3000);
+}
+// Wrapper para salvar no Firebase com feedback
+async function fbSaveWithFeedback(saveFn, btnEl, feedbackId){
+  if(btnEl){btnEl.disabled=true;btnEl.textContent='Salvando...';}
+  try{
+    await saveFn();
+    if(btnEl){btnEl.disabled=false;btnEl.textContent='Salvar';}
+    if(feedbackId) setFeedback(feedbackId,'✓ Salvo','ok');
+    showToast('Salvo com sucesso');
+  }catch(e){
+    if(btnEl){btnEl.disabled=false;btnEl.textContent='Salvar';}
+    const errMsg='Erro: '+(e&&e.message?e.message:'falha ao salvar');
+    if(feedbackId) setFeedback(feedbackId,errMsg,'err');
+    showToast(errMsg,'err');
+  }
+}
+
 // ════════════════════════════════════════
 // FIREBASE
 // ════════════════════════════════════════
@@ -300,7 +347,7 @@ let sessaoAtual = null; // usuário logado
 function saveAll(){
   DB.set('sos_ordens',ordens);DB.set('sos_registros',registros);
   DB.set('sos_usuarios',usuarios);DB.set('sos_config',config);
-  fbSaveOrdens();fbSaveRegistros();fbSaveUsuarios();fbSaveConfig();
+  return Promise.all([fbSaveOrdens(),fbSaveRegistros(),fbSaveUsuarios(),fbSaveConfig()]);
 }
 
 // ════════════════════════════════════════
@@ -477,8 +524,9 @@ function showFormOS(){
       <div class="field"><label>WhatsApp do Operador</label><input type="tel" id="f-op-wpp" placeholder="(xx) xxxxx-xxxx"/></div>
     </div>
   </div>
-  <button class="btn btn-primary" onclick="criarOS()">Criar OS e Gerar Link</button>
-  <button class="btn btn-ghost" style="margin-top:8px" onclick="cancelarOS()">Cancelar</button>`;
+  <button class="btn btn-primary" id="btn-criar-os" onclick="criarOS()">Criar OS e Gerar Link</button>
+  <span class="save-feedback" id="fb-criar-os" style="margin-bottom:8px"></span>
+  <button class="btn btn-ghost" style="margin-top:4px" onclick="cancelarOS()">Cancelar</button>`;
   diasContratados=[];
   refreshDias();
 }
@@ -522,7 +570,12 @@ function cancelarOS(){
 function criarOS(){
   const num=document.getElementById('f-num').value.trim();
   const cli=document.getElementById('f-cli').value.trim();
-  if(!num||!cli){alert('Preencha ao menos o Nº da OS e o Cliente.');return;}
+  if(!num||!cli){
+    setFeedback('fb-criar-os','✕ Preencha ao menos o Nº da OS e o Cliente.','err');
+    return;
+  }
+  const btnCriar=document.getElementById('btn-criar-os');
+  if(btnCriar){btnCriar.disabled=true;btnCriar.textContent='Salvando...';}
   const opId=document.getElementById('f-op').value;
   const opUser=usuarios.find(u=>u.id===opId);
   const os={
@@ -554,9 +607,15 @@ function criarOS(){
     criadoEm:new Date().toISOString(),
     status:'aberta'
   };
-  ordens.push(os);saveAll();cancelarOS();renderOSList();
-  const link=window.location.href.split('?')[0]+'?os='+os.id;
-  showLinkPopup(os,link);
+  ordens.push(os);
+  const btnCriar2=document.getElementById('btn-criar-os');
+  fbSaveWithFeedback(()=>saveAll(), btnCriar2, 'fb-criar-os').then(()=>{
+    cancelarOS();renderOSList();
+    const link=window.location.href.split('?')[0]+'?os='+os.id;
+    showLinkPopup(os,link);
+  }).catch(()=>{
+    if(btnCriar2){btnCriar2.disabled=false;btnCriar2.textContent='Criar OS e Gerar Link';}
+  });
 }
 
 function showLinkPopup(os,link){
@@ -851,11 +910,24 @@ function finalizarReg(){
     heOperador:heO,valorHEOperador:valHEop,heMaquina:heM,totalHoras:totH,
     criadoEm:new Date().toISOString()
   };
-  registros.push(lastReg);saveAll();
-  regEnviado=true; // trava
-  if(config.webhook){fetch(config.webhook,{method:'POST',body:JSON.stringify({...lastReg,assinatura:sigCliente?'(capturada)':'não',assinaturaOp:sigOperador?'(capturada)':'não'}),headers:{'Content-Type':'application/json'}}).catch(()=>{});}
+  registros.push(lastReg);
+  const btnFin=document.getElementById('btn-finalizar');
+  if(btnFin){btnFin.disabled=true;btnFin.textContent='Enviando...';}
+  saveAll().then(()=>{
+    regEnviado=true;
+    _finalizarRegUI();
+  }).catch(e=>{
+    if(btnFin){btnFin.disabled=false;btnFin.textContent='✓ Enviar Assinaturas e Finalizar OS';}
+    showToast('Erro ao salvar: '+(e&&e.message?e.message:'falha'),'err');
+  });
+  return; // execução continua em _finalizarRegUI após Promise
+}
+function _finalizarRegUI(){
+  if(config.webhook){fetch(config.webhook,{method:'POST',body:JSON.stringify({...lastReg,assinatura:lastReg.assinatura?'(capturada)':'não',assinaturaOp:lastReg.assinaturaOp?'(capturada)':'não'}),headers:{'Content-Type':'application/json'}}).catch(()=>{});}
   for(let i=0;i<4;i++){const el=document.getElementById('op'+i);if(el)el.style.display='none';}
-  // Preencher resumo no banner
+  const heO=lastReg.heOperador||0;
+  const heM=lastReg.heMaquina||0;
+  const valHEop=lastReg.valorHEOperador||0;
   const heMin=Math.round(heO*60);
   const resumoEl=document.getElementById('op-ok-resumo');
   if(resumoEl){
@@ -866,10 +938,11 @@ function finalizarReg(){
         <div><span style="color:var(--dim)">Data</span><br/><strong style="color:var(--text)">${fmtData(lastReg.data)}</strong></div>
         <div><span style="color:var(--dim)">Liga → Desliga</span><br/><strong style="color:var(--text)">${lastReg.partida} → ${lastReg.parada}</strong></div>
         <div><span style="color:var(--dim)">Total trabalhado</span><br/><strong style="color:var(--text)">${lastReg.totalHoras.toFixed(1)}h</strong></div>
-        <div><span style="color:var(--dim)">HE operador</span><br/><strong style="color:${heO>0?'var(--yellow)':'var(--green)'}">${heMin > 0 ? heMin+'min → R$ '+valHEop.toFixed(2) : 'Nenhuma'}</strong></div>
+        <div><span style="color:var(--dim)">HE operador</span><br/><strong style="color:${heO>0?'var(--yellow)':'var(--green)'}">${heMin>0?heMin+'min → R$ '+valHEop.toFixed(2):'Nenhuma'}</strong></div>
         ${heM>0?`<div style="grid-column:1/-1"><span style="color:var(--dim)">⚠️ HE Máquina</span><br/><strong style="color:var(--yellow)">${heM.toFixed(1)}h fora do contrato</strong></div>`:''}
       </div>`;
   }
+  showToast('OS enviada com sucesso!');
   document.getElementById('op-ok').style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1090,36 +1163,44 @@ function loadConfig(){
   <div class="card">
     <div class="card-title">Jornada e Horas Extras</div>
     <div class="grid2">
-      <div class="field"><label>Início da jornada</label><input type="time" id="cfg-ji" value="${config.jornadaIni}" onchange="svcfg()"/></div>
-      <div class="field"><label>Fim da jornada</label><input type="time" id="cfg-jf" value="${config.jornadaFim}" onchange="svcfg()"/></div>
+      <div class="field"><label>Início da jornada</label><input type="time" id="cfg-ji" value="${config.jornadaIni}"/></div>
+      <div class="field"><label>Fim da jornada</label><input type="time" id="cfg-jf" value="${config.jornadaFim}"/></div>
     </div>
     <div class="field"><label>Intervalo (horas descontadas)</label>
-      <input type="number" id="cfg-int" value="${config.intervalo}" step="0.5" min="0" onchange="svcfg()"/>
+      <input type="number" id="cfg-int" value="${config.intervalo}" step="0.5" min="0"/>
     </div>
-    <div class="field"><label>Valor da hora extra (R$/hora)</label>
-      <input type="number" id="cfg-hevalor" value="${config.heValor}" step="0.50" min="0" onchange="svcfg()"/>
-      <span style="font-size:11px;color:var(--dim)">Cálculo proporcional — ex: 32min × R$${config.heValor}/h = R$${(32/60*config.heValor).toFixed(2)}</span>
+    <div class="field"><label>Valor hora extra padrão (R$/hora)</label>
+      <input type="number" id="cfg-hevalor" value="${config.heValor}" step="0.50" min="0"/>
+      <span style="font-size:11px;color:var(--dim)">Usado quando o operador não tem valor individual definido.</span>
     </div>
+    <button class="btn btn-primary btn-sm" id="btn-cfg-jornada" style="width:auto;margin-top:4px" onclick="svcfg('btn-cfg-jornada','fb-cfg-jornada')">Salvar</button>
+    <span class="save-feedback" id="fb-cfg-jornada"></span>
   </div>
   <div class="card">
     <div class="card-title">WhatsApp — Confirmação de OS</div>
     <div class="field"><label>Número padrão para envio (com DDI)</label>
-      <input type="tel" id="cfg-wpp" value="${config.wppNumero||''}" placeholder="5561999999999" onchange="svcfg()"/>
-      <span style="font-size:11px;color:var(--dim)">Ex: 5561999999999 (55 = Brasil, 61 = DDD). Pode ser alterado no envio.</span>
+      <input type="tel" id="cfg-wpp" value="${config.wppNumero||''}" placeholder="5561999999999"/>
+      <span style="font-size:11px;color:var(--dim)">Ex: 5561999999999 (55 = Brasil, 61 = DDD).</span>
     </div>
+    <button class="btn btn-primary btn-sm" id="btn-cfg-wpp" style="width:auto;margin-top:4px" onclick="svcfg('btn-cfg-wpp','fb-cfg-wpp')">Salvar</button>
+    <span class="save-feedback" id="fb-cfg-wpp"></span>
   </div>
   <div class="card">
     <div class="card-title">Agente IA — OpenAI</div>
-    <div class="field"><label>Chave API OpenAI (opcional)</label>
-      <input type="password" id="cfg-oai" value="${config.openaiKey||''}" placeholder="sk-..." onchange="svcfg()"/>
-      <span style="font-size:11px;color:var(--dim)">Habilita respostas inteligentes no Assistente Técnico. Sem custo de plataforma — você paga só o que usar na OpenAI.</span>
+    <div class="field"><label>Chave API OpenAI</label>
+      <input type="password" id="cfg-oai" value="${config.openaiKey||''}" placeholder="sk-..."/>
+      <span style="font-size:11px;color:var(--dim)">Cole aqui sua chave da OpenAI. Ela fica salva no Firebase e vale para todos os usuários.</span>
     </div>
+    <button class="btn btn-primary btn-sm" id="btn-cfg-oai" style="width:auto;margin-top:4px" onclick="svcfg('btn-cfg-oai','fb-cfg-oai')">Salvar chave</button>
+    <span class="save-feedback" id="fb-cfg-oai"></span>
   </div>
   <div class="card">
     <div class="card-title">Integração Google Sheets (webhook)</div>
     <div class="field"><label>URL Google Apps Script</label>
-      <input type="url" id="cfg-wh" value="${config.webhook||''}" placeholder="https://script.google.com/..." onchange="svcfg()"/>
+      <input type="url" id="cfg-wh" value="${config.webhook||''}" placeholder="https://script.google.com/..."/>
     </div>
+    <button class="btn btn-primary btn-sm" id="btn-cfg-wh" style="width:auto;margin-top:4px" onclick="svcfg('btn-cfg-wh','fb-cfg-wh')">Salvar</button>
+    <span class="save-feedback" id="fb-cfg-wh"></span>
   </div>
   <div class="card">
     <div class="card-title">Usuários</div>
@@ -1141,7 +1222,8 @@ function loadConfig(){
       </select>
     </div>
     <p style="font-size:11px;color:var(--dim);margin-bottom:10px">O campo "Valor HE" é usado apenas para operadores — define quanto esse funcionário específico recebe por hora extra.</p>
-    <button class="btn btn-primary btn-sm" style="width:auto" onclick="addUser()">+ Adicionar Usuário</button>
+    <button class="btn btn-primary btn-sm" style="width:auto" id="btn-add-user" onclick="addUser()">+ Adicionar Usuário</button>
+    <span class="save-feedback" id="fb-add-user"></span>
   </div>
   <div class="card">
     <div class="card-title">Dados</div>
@@ -1155,7 +1237,7 @@ function loadConfig(){
   renderUsers();
 }
 
-function svcfg(){
+function svcfg(btnId, feedbackId){
   config.jornadaIni=document.getElementById('cfg-ji')?.value||config.jornadaIni;
   config.jornadaFim=document.getElementById('cfg-jf')?.value||config.jornadaFim;
   config.intervalo=parseFloat(document.getElementById('cfg-int')?.value)||1;
@@ -1163,7 +1245,8 @@ function svcfg(){
   config.webhook=document.getElementById('cfg-wh')?.value||'';
   config.openaiKey=document.getElementById('cfg-oai')?.value||'';
   config.wppNumero=document.getElementById('cfg-wpp')?.value||'';
-  saveAll();
+  const btn=btnId?document.getElementById(btnId):null;
+  fbSaveWithFeedback(()=>saveAll(), btn, feedbackId||null);
 }
 
 function renderUsers(){
@@ -1186,14 +1269,17 @@ function addUser(){
   const pass=document.getElementById('nu-pass')?.value;
   const perfil=document.getElementById('nu-perfil')?.value;
   const heValor=parseFloat(document.getElementById('nu-he')?.value)||0;
-  if(!nome||!user||!pass){alert('Preencha nome, usuário e senha.');return;}
-  if(usuarios.find(u=>u.user===user)){alert('Usuário já existe.');return;}
+  const btn=document.getElementById('btn-add-user');
+  if(!nome||!user||!pass){setFeedback('fb-add-user','✕ Preencha nome, usuário e senha.','err');return;}
+  if(usuarios.find(u=>u.user===user)){setFeedback('fb-add-user','✕ Usuário já existe.','err');return;}
   usuarios.push({id:'u_'+Date.now(),nome,user,senha:pass,perfil,heValor});
-  saveAll();renderUsers();
-  document.getElementById('nu-nome').value='';
-  document.getElementById('nu-user').value='';
-  document.getElementById('nu-pass').value='';
-  document.getElementById('nu-he').value='';
+  fbSaveWithFeedback(()=>saveAll(), btn, 'fb-add-user').then(()=>{
+    renderUsers();
+    document.getElementById('nu-nome').value='';
+    document.getElementById('nu-user').value='';
+    document.getElementById('nu-pass').value='';
+    document.getElementById('nu-he').value='';
+  });
 }
 function delUser(id){if(confirm('Remover usuário?')){usuarios=usuarios.filter(u=>u.id!==id);saveAll();renderUsers();}}
 function expBackup(){const d=JSON.stringify({ordens,registros,usuarios,config},null,2);const a=document.createElement('a');a.href='data:application/json,'+encodeURIComponent(d);a.download='sos-backup-'+new Date().toISOString().split('T')[0]+'.json';a.click();}
