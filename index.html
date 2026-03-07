@@ -416,7 +416,7 @@ function buildNav(){
   pages.push({id:'operador',label:'Operador'});
   if(isAdmin) pages.push({id:'relatorio',label:'Relatório'});
   pages.push({id:'agente',label:'Assistente'});
-  if(sessaoAtual.perfil==='admin') pages.push({id:'config',label:'Config'});
+  if(sessaoAtual.perfil==='admin') pages.push({id:'config',label:'Configurações'});
   pages.forEach((p,i)=>{
     const b=document.createElement('button');
     b.className='nav-tab'+(i===0?' active':'');
@@ -1228,7 +1228,7 @@ function loadAgente(){
         if(s.val()){
           el.innerHTML='<div class="alert alert-green" style="font-size:12px">🤖 IA ativa — GPT-4o conectado. Você pode enviar fotos de painéis e controladoras para tradução e análise técnica.</div>';
         } else {
-          el.innerHTML='<div class="alert alert-yellow" style="font-size:12px">⚠️ Chave OpenAI não configurada. Vá em <strong>Config → Agente IA</strong> e cole sua chave. O assistente usará respostas pré-programadas até lá.</div>';
+          el.innerHTML='<div class="alert alert-yellow" style="font-size:12px">⚠️ Chave OpenAI não configurada. Vá em <strong>Configurações → Agente IA</strong> e cole sua chave. O assistente usará respostas pré-programadas até lá.</div>';
         }
       }).catch(()=>{});
     <\/script>
@@ -1403,7 +1403,7 @@ async function enviarChat(){
   await new Promise(r=>setTimeout(r,800));
   document.getElementById('typing')?.remove();
   if(temFoto){
-    msgs.innerHTML+=`<div class="chat-msg ai">📷 Recebi a foto! Para analisar imagens preciso da chave OpenAI configurada em <strong>Config → Agente IA</strong>. Sem ela consigo responder apenas perguntas de texto.</div>`;
+    msgs.innerHTML+=`<div class="chat-msg ai">📷 Recebi a foto! Para analisar imagens preciso da chave OpenAI configurada em <strong>Configurações → Agente IA</strong>. Sem ela consigo responder apenas perguntas de texto.</div>`;
     msgs.scrollTop=msgs.scrollHeight;
     return;
   }
