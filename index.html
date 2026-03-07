@@ -1753,9 +1753,23 @@ function _gerarPDF(os, regsOS){
   try{
   regsOS=Array.isArray(regsOS)?regsOS:[];
   const totHoras=regsOS.reduce((a,r)=>a+(r.totalHoras||0),0);
-  const totHEOp=regsOS.reduce((a,r)=>a+(r.heOperador||0),0);
   const totHEMaq=regsOS.reduce((a,r)=>a+(r.heMaquina||0),0);
-  const totValHE=regsOS.reduce((a,r)=>a+(r.valorHEOperador||0),0);
+  // Recalcula HE do operador pelo período informado (heIni/heFim) — proporcional ao valor/hora
+  let totHEOp=0, totValHE=0;
+  regsOS.forEach(r=>{
+    let heH=0;
+    if(r.heIni&&r.heFim){
+      const hIniM=toMin(r.heIni),hFimM=toMin(r.heFim);
+      heH=(hFimM>hIniM?hFimM-hIniM:hFimM+1440-hIniM)/60;
+    } else {
+      heH=r.heOperador||0;
+    }
+    // valor/hora: usa valorHEOperador gravado proporcional; ou recalcula pelo heValor do operador
+    const opUser=usuarios.find(u=>u.id===r.operadorId);
+    const heValorH=(opUser&&opUser.heValor>0)?opUser.heValor:config.heValor;
+    totHEOp+=heH;
+    totValHE+=heH*heValorH;
+  });
   const heOpMin=Math.round(totHEOp*60);
   const dataEmissao=new Date().toLocaleString('pt-BR');
 
@@ -1884,9 +1898,8 @@ function _gerarPDF(os, regsOS){
 <div class="dashboard">
   <div class="metric"><div class="m-lbl">Registros</div><div class="m-val m-red">${regsOS.length}</div></div>
   <div class="metric"><div class="m-lbl">Horas Totais</div><div class="m-val">${totHoras.toFixed(1)}h</div></div>
-  <div class="metric"><div class="m-lbl">HE Operador</div><div class="m-val ${totHEOp>0?'m-warn':'m-ok'}">${heOpMin}min</div></div>
+  <div class="metric"><div class="m-lbl">HE Operador</div><div class="m-val ${totHEOp>0?'m-warn':'m-ok'}">${heOpMin}min</div><div style="font-size:10px;color:${totValHE>0?'#d97706':'#888'};margin-top:2px;font-weight:700">${totValHE>0?'R$ '+totValHE.toFixed(2):'—'}</div></div>
   <div class="metric"><div class="m-lbl">HE Máquina</div><div class="m-val ${totHEMaq>0?'m-warn':'m-ok'}">${totHEMaq>0?totHEMaq.toFixed(1)+'h':'—'}</div></div>
-  <div class="metric"><div class="m-lbl">Valor HE</div><div class="m-val ${totValHE>0?'m-warn':'m-ok'}">R$ ${totValHE.toFixed(2)}</div></div>
 </div>
 
 <div class="sec-title">Dados do Cliente / Evento</div>
