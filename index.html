@@ -1305,6 +1305,26 @@ function finalizarReg(){
     if(el0par&&horariosPorGerador[0]) el0par.value=horariosPorGerador[0].desliga;
   }
   // HE do operador = diferença entre heIni e heFim que ele informou
+  // Coletar horários de todos os geradores
+  const gerOp=(opOS.equipamentos||[]).filter(e=>e.tipo==='gerador');
+  const horariosGeradores = gerOp.length>0 ? gerOp.map((g,gi)=>({
+    id:g.id, potencia:g.potencia, patrimonio:g.patrimonio,
+    ligou: document.getElementById('op-part-'+gi)?.value||'',
+    desligou: document.getElementById('op-par-'+gi)?.value||'',
+    horIni: document.getElementById('op-hi-'+gi)?.value||'',
+    horFim: document.getElementById('op-hf-'+gi)?.value||''
+  })) : [];
+  // Compatibilidade: usar primeiro gerador para op-part/op-par/op-hi/op-hf legado
+  if(gerOp.length>0){
+    const g0 = document.getElementById('op-part-0');
+    const gp0 = document.getElementById('op-par-0');
+    if(g0) document.getElementById('op-part').value = g0.value||'';
+    if(gp0) document.getElementById('op-par').value = gp0.value||'';
+    const hi0 = document.getElementById('op-hi-0');
+    const hf0 = document.getElementById('op-hf-0');
+    if(hi0) document.getElementById('op-hi').value = hi0.value||'';
+    if(hf0) document.getElementById('op-hf').value = hf0.value||'';
+  }
   const _heIni=document.getElementById('op-he-ini')?.value||'';
   const _heFim=document.getElementById('op-he-fim')?.value||'';
   let heO=0;
@@ -1327,6 +1347,7 @@ function finalizarReg(){
     horIni:document.getElementById('op-hi')?.value||'',
     horFim:document.getElementById('op-hf')?.value||'',
     obs:document.getElementById('op-obs')?.value||'',
+    horariosGeradores: horariosGeradores,
     heIni: document.getElementById('op-he-ini')?.value || '',
     heFim: document.getElementById('op-he-fim')?.value || '',
     horariosPorGerador: horariosPorGerador.length ? horariosPorGerador : undefined,
