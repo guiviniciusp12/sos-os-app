@@ -201,6 +201,7 @@
 <div id="page-relatorio" class="page"></div>
 <div id="page-agente" class="page"></div>
 <div id="page-config" class="page"></div>
+<div id="page-historico" class="page"></div>
 
 <script>
 // ════════════════════════════════════════
@@ -423,6 +424,7 @@ function buildNav(){
   if(isAdmin) pages.push({id:'relatorio',label:'Relatório'});
   pages.push({id:'agente',label:'Assistente'});
   if(sessaoAtual.perfil==='admin') pages.push({id:'config',label:'Configurações'});
+  if(sessaoAtual.perfil==='operador') pages.push({id:'historico',label:'Histórico'});
   pages.forEach((p,i)=>{
     const b=document.createElement('button');
     b.className='nav-tab'+(i===0?' active':'');
@@ -452,6 +454,7 @@ function switchPage(id,btn){
   if(id==='relatorio') loadRelatorio();
   if(id==='agente') loadAgente();
   if(id==='config') loadConfig();
+  if(id==='historico') loadHistorico();
 }
 
 // ════════════════════════════════════════
@@ -577,7 +580,7 @@ let _editandoOSId=null; // null = criação, string = edição
 
 function addEquip(tipo){
   equipamentosOS.push(tipo==='gerador'
-    ? {id:'eq_'+Date.now(),tipo:'gerador',potencia:'',patrimonio:''}
+    ? {id:'eq_'+Date.now(),tipo:'gerador',potencia:'',patrimonio:'',heValorGerador:''}
     : {id:'eq_'+Date.now(),tipo:'acessorio',nome:'',quantidade:'1'});
   renderEquip();
   // foco no primeiro campo do item adicionado
@@ -611,6 +614,10 @@ function renderEquip(){
           <div class="field" style="margin:0 0 6px">
             <label style="font-size:10px">Nº Patrimônio</label>
             <input value="${eq.patrimonio}" placeholder="Ex: G-042" oninput="equipamentosOS[${i}].patrimonio=this.value"/>
+          </div>
+          <div class="field" style="margin:0 0 6px;grid-column:1/-1">
+            <label style="font-size:10px">Valor HE Gerador (R$/hora)</label>
+            <input type="number" step="0.50" min="0" value="${eq.heValorGerador||''}" placeholder="Ex: 50.00" oninput="equipamentosOS[${i}].heValorGerador=this.value"/>
           </div>
         </div>
       </div>`;
@@ -987,15 +994,39 @@ function buildOpForm(os){
         <div class="field"><label>Horário Desliga (Parada)</label><input type="time" id="op-par" oninput="calcHE()"/></div>
       </div>
       <div class="grid2">
-        <div class="field"><label>Horímetro Inicial</label><input type="number" id="op-hi" step="0.1" placeholder="4520"/></div>
-        <div class="field"><label>Horímetro Final</label><input type="number" id="op-hf" step="0.1" placeholder="4534"/></div>
+        <div class="field"><label>Horímetro Inicial</label><input type="number" id="op-hi" step="0.1" placeholder="4520" required oninput="calcHorFinal()"/></div>
+        <div class="field"><label>Horímetro Final</label><input type="number" id="op-hf" step="0.1" placeholder="Calculado automaticamente"/></div>
       </div>
       <div class="he-warn" id="he-maq-warn">
         <strong style="color:var(--yellow)">⚠️ Horas extras de máquina</strong>
         <p id="he-maq-txt" style="font-size:13px;margin-top:4px"></p>
         <p style="font-size:12px;color:var(--dim);margin-top:3px">Comunique ao cliente — haverá cobrança adicional.</p>
       </div>
-      <div id="he-op-res" style="display:none;margin-top:10px;background:var(--dark);border-radius:8px;padding:10px;font-size:13px"></div>
+      <div id="he-periodo-container" style="display:none">
+        <div class="alert alert-yellow" style="margin-bottom:8px;font-size:12px">
+          ⚠️ <strong>Hora extra detectada.</strong> Informe o período de hora extra trabalhado:
+        </div>
+        <p style="font-size:12px;color:var(--dim);margin-bottom:10px">
+          Hora extra: Seg-Sex das <strong>18h às 08h</strong> | Sáb a partir das <strong>12h</strong> até <strong>08h de segunda</strong>.
+        </p>
+        <div class="grid2">
+          <div class="field"><label>Início da HE</label><input type="time" id="op-he-ini" oninput="calcHE()"/></div>
+          <div class="field"><label>Fim da HE</label><input type="time" id="op-he-fim" oninput="calcHE()"/></div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label>Gerador foi abastecido?</label>
+        <select id="op-abastecido" onchange="toggleAbastecimento()">
+          <option value="nao">Não</option>
+          <option value="sim">Sim</option>
+        </select>
+      </div>
+      <div id="op-litros-container" style="display:none">
+        <div class="field">
+          <label>Quantos litros?</label>
+          <input type="number" id="op-litros" min="0" step="1" placeholder="Ex: 100"/>
+        </div>
+      </div>
       <div class="field" style="margin-top:12px"><label>Observações</label><textarea id="op-obs" placeholder="Ocorrências, abastecimento, solicitações..."></textarea></div>
     </div>` : `
     <div class="card">
@@ -1056,8 +1087,8 @@ function buildOpForm(os){
     <!-- Banner de sucesso destacado -->
     <div style="background:var(--green);border-radius:14px;padding:28px 20px;text-align:center;margin-bottom:16px">
       <div style="font-size:52px;margin-bottom:10px">✅</div>
-      <h2 style="color:#fff;font-size:20px;margin-bottom:6px">Preenchido e Enviado com Sucesso!</h2>
-      <p style="color:rgba(255,255,255,.85);font-size:14px">O administrativo já recebeu os dados desta OS.<br/>Este registro está travado e não pode ser reenviado.</p>
+      <h2 style="color:#fff;font-size:20px;margin-bottom:6px">Obrigado! Enviado com Sucesso!</h2>
+      <p style="color:rgba(255,255,255,.85);font-size:14px">Seu registro foi enviado ao administrativo.<br/>Esta OS está bloqueada para edição. Em caso de erro, contate o administrador.</p>
     </div>
     <div id="op-ok-resumo" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--dim)"></div>
     <button class="btn btn-wpp" onclick="enviarWPP()" style="margin-bottom:10px">
@@ -1101,18 +1132,28 @@ function calcHE(){
       wEl.classList.add('show');
     } else wEl.classList.remove('show');
   }
-  // HE operador — usa valor individual do operador (ou global como fallback)
-  const jorH=(toMin(config.jornadaFim)-toMin(config.jornadaIni))/60-config.intervalo;
-  const heO=Math.max(0,totH-config.intervalo-jorH);
-  const opUser=opOS?usuarios.find(u=>u.id===opOS.operadorId):null;
-  const heValorOp=(opUser&&opUser.heValor>0)?opUser.heValor:config.heValor;
-  const rEl=document.getElementById('he-op-res');
-  if(rEl&&totH>0){
-    rEl.style.display='block';
-    const val=heO*heValorOp;
-    const heMin=Math.round(heO*60);
-    rEl.innerHTML=`Total: <strong>${totH.toFixed(1)}h</strong> · HE: <strong style="color:${heO>0?'var(--yellow)':'var(--green)'};">${heMin}min</strong>${heO>0?` · <strong>R$ ${val.toFixed(2)}</strong> <span style="font-size:11px;color:var(--dim)">(R$${heValorOp}/h)</span>`:''}`;
-  }
+  // Mostra campo de período de HE se houver HE
+  const hePeriodoContainer = document.getElementById('he-periodo-container');
+  if(hePeriodoContainer) hePeriodoContainer.style.display = heM_calc > 0 ? 'block' : 'none';
+  calcHorFinal();
+}
+
+function calcHorFinal(){
+  const part=document.getElementById('op-part')?.value;
+  const par=document.getElementById('op-par')?.value;
+  const hi=parseFloat(document.getElementById('op-hi')?.value)||0;
+  if(!part||!par||!hi) return;
+  const pM=toMin(part), sM=toMin(par);
+  const totH=(sM>pM?sM-pM:sM+1440-pM)/60;
+  const hf=(hi+totH).toFixed(1);
+  const hfEl=document.getElementById('op-hf');
+  if(hfEl) hfEl.value=hf;
+}
+
+function toggleAbastecimento(){
+  const val=document.getElementById('op-abastecido')?.value;
+  const c=document.getElementById('op-litros-container');
+  if(c) c.style.display=val==='sim'?'block':'none';
 }
 
 const sigPads={};
@@ -1138,6 +1179,8 @@ let lastReg=null;
 let regEnviado=false; // trava de reenvio
 function finalizarReg(){
   if(regEnviado){alert('Esta OS já foi enviada. Para registrar outro dia, volte e selecione a OS novamente.');return;}
+  const hi=document.getElementById('op-hi')?.value;
+  if(!hi){ alert('Preencha o Horímetro Inicial.'); return; }
   const data=document.getElementById('op-data')?.value;
   const part=document.getElementById('op-part')?.value;
   const par=document.getElementById('op-par')?.value;
@@ -1162,6 +1205,10 @@ function finalizarReg(){
     horIni:document.getElementById('op-hi')?.value||'',
     horFim:document.getElementById('op-hf')?.value||'',
     obs:document.getElementById('op-obs')?.value||'',
+    heIni: document.getElementById('op-he-ini')?.value || '',
+    heFim: document.getElementById('op-he-fim')?.value || '',
+    abastecido: document.getElementById('op-abastecido')?.value||'nao',
+    litros: document.getElementById('op-litros')?.value||'',
     placa:document.getElementById('op-placa')?.value||'',
     motorista:document.getElementById('op-mot')?.value||'',
     itinerario:document.getElementById('op-itin')?.value||'',
@@ -1199,8 +1246,8 @@ function _finalizarRegUI(){
         <div><span style="color:var(--dim)">Data</span><br/><strong style="color:var(--text)">${fmtData(lastReg.data)}</strong></div>
         <div><span style="color:var(--dim)">Liga → Desliga</span><br/><strong style="color:var(--text)">${lastReg.partida} → ${lastReg.parada}</strong></div>
         <div><span style="color:var(--dim)">Total trabalhado</span><br/><strong style="color:var(--text)">${lastReg.totalHoras.toFixed(1)}h</strong></div>
-        <div><span style="color:var(--dim)">HE operador</span><br/><strong style="color:${heO>0?'var(--yellow)':'var(--green)'}">${heMin>0?heMin+'min → R$ '+valHEop.toFixed(2):'Nenhuma'}</strong></div>
         ${heM>0?`<div style="grid-column:1/-1"><span style="color:var(--dim)">⚠️ HE Máquina</span><br/><strong style="color:var(--yellow)">${heM.toFixed(1)}h fora do contrato</strong></div>`:''}
+        ${lastReg.abastecido==='sim'?`<div style="grid-column:1/-1"><span style="color:var(--dim)">Abastecimento</span><br/><strong style="color:var(--text)">${lastReg.litros} litros</strong></div>`:''}
       </div>`;
   }
   showToast('OS enviada com sucesso!');
@@ -1836,7 +1883,7 @@ ${(()=>{
   let html='';
   if(geradores.length){
     html+=`<div style="font-size:9px;font-weight:700;color:#CC0000;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Geradores</div>`;
-    html+=`<div class="info-grid" style="margin-bottom:8px">`+geradores.map(g=>`<div class="info-row"><span class="info-lbl">⚡ ${g.potencia||'—'}</span><span class="info-val">Pat: ${g.patrimonio||'—'}</span></div>`).join('')+`</div>`;
+    html+=`<div class="info-grid" style="margin-bottom:8px">`+geradores.map(g=>`<div class="info-row"><span class="info-lbl">⚡ ${g.potencia||'—'}</span><span class="info-val">Patrimônio: ${g.patrimonio||'—'}</span></div>`).join('')+`</div>`;
   }
   if(acessorios.length){
     html+=`<div style="font-size:9px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:4px">Acessórios</div>`;
@@ -1861,6 +1908,45 @@ ${registrosHTML||'<p style="color:#aaa;padding:8px 4px;font-size:11px">Nenhum re
   win.document.close();
   showToast('PDF pronto — clique em "Salvar / Imprimir PDF"');
   }catch(e){showToast('Erro ao gerar PDF: '+(e&&e.message?e.message:String(e)),'err');console.error('_gerarPDF error',e);}
+}
+
+// ════════════════════════════════════════
+// HISTÓRICO OPERADOR
+// ════════════════════════════════════════
+function loadHistorico(){
+  const el=document.getElementById('page-historico');
+  if(!el) return;
+  // Operador vê apenas suas próprias OS
+  const minhasOS=ordens.filter(o=>{
+    if(sessaoAtual.perfil==='admin'||sessaoAtual.perfil==='comercial') return true;
+    return (o.operadores&&o.operadores.some(op=>op.userId===sessaoAtual.id))||o.operadorId===sessaoAtual.id;
+  });
+  const meusRegs=registros.filter(r=>r.operadorId===sessaoAtual.id||r.operadorNome===sessaoAtual.nome);
+  if(!minhasOS.length&&!meusRegs.length){
+    el.innerHTML='<div class="card"><p style="color:var(--dim);font-size:14px;padding:8px 0">Nenhuma OS no seu histórico ainda.</p></div>';
+    return;
+  }
+  el.innerHTML=`
+  <div class="card">
+    <div class="card-title">Histórico de OS</div>
+    <p style="font-size:12px;color:var(--dim);margin-bottom:12px">Visualização somente leitura. Para alterações, contate o administrador.</p>
+    ${minhasOS.slice().reverse().map(os=>{
+      const regsOS=meusRegs.filter(r=>r.osId===os.id);
+      return `<div class="os-item" style="cursor:default">
+        <div class="os-item-header">
+          <span style="font-weight:700">OS ${os.num}</span>
+          <span class="badge ${os.status==='fechada'?'badge-green':'badge-yellow'}">${os.status==='fechada'?'Fechada':regsOS.length?regsOS.length+' reg.':'Aguardando'}</span>
+        </div>
+        <div style="font-size:14px;color:var(--dim);margin-bottom:3px">${os.cliente}${os.evento?' · '+os.evento:''}</div>
+        <div style="font-size:12px;color:var(--dim)">${os.dataSaida} → ${os.dataRetorno}</div>
+        ${regsOS.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          ${regsOS.map(r=>`<div style="font-size:12px;color:var(--dim);margin-bottom:4px">
+            📋 ${fmtData(r.data)} · Liga: ${r.partida} → Desliga: ${r.parada} · ${(r.totalHoras||0).toFixed(1)}h
+          </div>`).join('')}
+        </div>`:''}
+      </div>`;
+    }).join('')}
+  </div>`;
 }
 
 // ════════════════════════════════════════
