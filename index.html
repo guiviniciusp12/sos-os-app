@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v4.1</title>
+  <title>SOS Energia — OS Digital v4.2</title>
   <style>
     :root{
       --red:#CC0000;--red-dark:#990000;--red-light:#ff3333;
@@ -1109,8 +1109,6 @@ function buildOpForm(os){
     <input type="hidden" id="op-par" value=""/>
     <input type="hidden" id="op-hi" value=""/>
     <input type="hidden" id="op-hf" value=""/>
-    <input type="hidden" id="op-he-ini" value=""/>
-    <input type="hidden" id="op-he-fim" value=""/>
     <div class="card">
       <div class="card-title">Registro do Dia</div>
       <div class="field"><label>Data</label><input type="date" id="op-data" value="${hoje}"/></div>
@@ -1171,6 +1169,20 @@ function buildOpForm(os){
   </div>
   <!-- Step 3: Assinaturas -->
   <div id="op3" style="display:none">
+    <div class="card">
+      <div class="card-title">⏱ Horas Extras do Operador</div>
+      <div style="background:rgba(255,180,0,.13);border:1px solid rgba(255,180,0,.35);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;margin-bottom:14px">
+        <strong>⚠️ HE começa a computar:</strong><br>
+        • <strong>Seg–Sex:</strong> das 18h às 08h da manhã<br>
+        • <strong>Sábado:</strong> das 12h até 08h de segunda-feira<br>
+        • <strong>Feriados:</strong> integral
+      </div>
+      <div class="grid2">
+        <div class="field"><label>Início da HE</label><input type="time" id="op-he-ini" placeholder="--:--"/></div>
+        <div class="field"><label>Fim da HE</label><input type="time" id="op-he-fim" placeholder="--:--"/></div>
+      </div>
+      <div style="font-size:12px;color:var(--dim);margin-top:4px">Deixe em branco se não houve HE neste dia.</div>
+    </div>
     <div class="card">
       <div class="card-title">Assinatura do Cliente</div>
       <p style="font-size:13px;color:var(--dim);margin-bottom:11px">Peça ao cliente para assinar confirmando os horários.</p>
@@ -1352,10 +1364,6 @@ function finalizarReg(){
     const hf0=document.getElementById('op-hf-0');
     if(hi0) document.getElementById('op-hi').value=hi0.value||'';
     if(hf0) document.getElementById('op-hf').value=hf0.value||'';
-    const hei0=document.getElementById('op-he-ini-0');
-    const hef0=document.getElementById('op-he-fim-0');
-    if(hei0) document.getElementById('op-he-ini').value=hei0.value||'';
-    if(hef0) document.getElementById('op-he-fim').value=hef0.value||'';
   }
   const _heIni=document.getElementById('op-he-ini')?.value||'';
   const _heFim=document.getElementById('op-he-fim')?.value||'';
