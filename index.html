@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v4.3</title>
+  <title>SOS Energia — OS Digital v4.4</title>
   <style>
     :root{
       --red:#CC0000;--red-dark:#990000;--red-light:#ff3333;
@@ -2199,12 +2199,6 @@ ${(()=>{
   let html='';
   if(geradores.length){
     html+=`<div style="font-size:9px;font-weight:700;color:#CC0000;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Geradores</div>`;
-    // Totais por OS
-    const totalHorasRodadas=regsOS.reduce((acc,r)=>{
-      const hi=parseFloat(r.horIni)||0;const hf=parseFloat(r.horFim)||0;
-      return acc+(hf>hi?hf-hi:0);
-    },0);
-    const totalHEMaq=regsOS.reduce((a,r)=>a+(r.heMaquina||0),0);
     html+=`<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:8px">
       <thead><tr style="background:#f3f3f3">
         <th style="padding:5px 8px;text-align:left;border:1px solid #ddd;font-size:9px;color:#555;text-transform:uppercase">Potência</th>
@@ -2213,14 +2207,28 @@ ${(()=>{
         <th style="padding:5px 8px;text-align:right;border:1px solid #ddd;font-size:9px;color:#856404;text-transform:uppercase">HE máquina</th>
         <th style="padding:5px 8px;text-align:right;border:1px solid #ddd;font-size:9px;color:#CC0000;text-transform:uppercase">Valor HE</th>
       </tr></thead>
-      <tbody>`+geradores.map(g=>{
+      <tbody>`+geradores.map((g,gi)=>{
+        // Soma horas rodadas e HE deste gerador específico em todos os registros
+        let horasG=0, heHG=0;
+        regsOS.forEach(r=>{
+          const gd=r.horariosGeradores&&r.horariosGeradores[gi];
+          if(gd){
+            horasG+=parseFloat(gd.horasRodadas)||0;
+            heHG+=parseFloat(gd.heH)||0;
+          } else {
+            // fallback para registro antigo sem horariosGeradores
+            const hi=parseFloat(r.horIni)||0;const hf=parseFloat(r.horFim)||0;
+            if(hf>hi) horasG+=(hf-hi);
+            heHG+=parseFloat(r.heMaquina)||0;
+          }
+        });
         const heVal=parseFloat(g.heValorGerador)||0;
-        const valorHETotal=totalHEMaq*heVal;
+        const valorHETotal=heHG*heVal;
         return `<tr>
           <td style="padding:5px 8px;border:1px solid #ddd;font-weight:700">⚡ ${g.potencia||'—'}</td>
           <td style="padding:5px 8px;border:1px solid #ddd">${g.patrimonio||'—'}</td>
-          <td style="padding:5px 8px;border:1px solid #ddd;text-align:right">${totalHorasRodadas>0?fmtHE(totalHorasRodadas):'—'}</td>
-          <td style="padding:5px 8px;border:1px solid #ddd;text-align:right;font-weight:700;color:${totalHEMaq>0?'#856404':'#22c55e'}">${totalHEMaq>0?'+'+fmtHE(totalHEMaq)+' extra':'✓ Dentro contrato'}</td>
+          <td style="padding:5px 8px;border:1px solid #ddd;text-align:right">${horasG>0?fmtHE(horasG):'—'}</td>
+          <td style="padding:5px 8px;border:1px solid #ddd;text-align:right;font-weight:700;color:${heHG>0?'#856404':'#22c55e'}">${heHG>0?'+'+fmtHE(heHG)+' extra':'✓ Dentro contrato'}</td>
           <td style="padding:5px 8px;border:1px solid #ddd;text-align:right;font-weight:700;color:${valorHETotal>0?'#CC0000':'#888'}">${heVal>0?(valorHETotal>0?'R$ '+valorHETotal.toFixed(2)+'<br/><span style="font-size:8px;font-weight:400;color:#888">R$ '+heVal.toFixed(2)+'/hora extra</span>':'R$ 0,00'):'<span style="color:#888">Não informado</span>'}</td>
         </tr>`;
       }).join('')+`</tbody></table>`;
