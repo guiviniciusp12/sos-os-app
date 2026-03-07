@@ -20,14 +20,14 @@
     /* ── LOGIN ── */
     #login-screen{position:fixed;inset:0;background:var(--black);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
     .login-logo{margin-bottom:32px;text-align:center}
-    .login-logo svg{width:120px;height:60px}
+    .login-logo svg{width:90px;height:90px}
     .login-logo p{color:var(--dim);font-size:13px;margin-top:8px}
     .login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;width:100%;max-width:380px}
     .login-box h2{font-size:18px;margin-bottom:20px;color:var(--text)}
     /* ── NAV ── */
     .nav{background:var(--dark);border-bottom:2px solid var(--red);display:flex;align-items:center;justify-content:space-between;padding:0 12px;height:54px;position:sticky;top:0;z-index:100}
     .nav-left{display:flex;align-items:center;gap:10px}
-    .nav-logo-sm{width:52px;height:26px}
+    .nav-logo-sm{width:38px;height:38px}
     .nav-user{font-size:11px;color:var(--dim);background:var(--card2);padding:3px 8px;border-radius:20px}
     .nav-tabs{display:flex;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
     .nav-tabs::-webkit-scrollbar{display:none}
@@ -155,12 +155,13 @@
 <!-- ═══ LOGIN ═══ -->
 <div id="login-screen">
   <div class="login-logo">
-    <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg">
-      <rect width="200" height="80" fill="#0a0a0a"/>
-      <text x="100" y="58" text-anchor="middle" font-family="Arial Black,sans-serif" font-weight="900" font-size="52" fill="#CC0000">SOS</text>
-      <polygon points="102,6 94,36 101,36 97,68 112,30 104,30" fill="#0a0a0a"/>
-      <polygon points="101,8 93,37 100,37 96,66 110,32 103,32" fill="#CC0000" opacity=".55"/>
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <!-- círculo vermelho -->
+      <circle cx="50" cy="50" r="46" fill="#CC0000"/>
+      <!-- raio preto -->
+      <polygon points="56,12 40,52 51,52 44,88 68,44 56,44" fill="#0a0a0a"/>
     </svg>
+    <div style="margin-top:14px;font-family:Arial Black,sans-serif;font-weight:900;font-size:22px;color:#CC0000;letter-spacing:2px">SOS ENERGIA</div>
     <p>Ordem de Serviço Digital</p>
   </div>
   <div class="login-box">
@@ -181,10 +182,11 @@
 <!-- ═══ NAV ═══ -->
 <nav class="nav" id="main-nav" style="display:none">
   <div class="nav-left">
-    <svg class="nav-logo-sm" viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" onclick="irParaOS()" style="cursor:pointer" title="Voltar para OS">
-      <rect width="200" height="80" fill="#141414"/>
-      <text x="100" y="58" text-anchor="middle" font-family="Arial Black,sans-serif" font-weight="900" font-size="52" fill="#CC0000">SOS</text>
-      <polygon points="101,8 93,37 100,37 96,66 110,32 103,32" fill="#CC0000" opacity=".55"/>
+    <svg class="nav-logo-sm" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" onclick="irParaOS()" style="cursor:pointer" title="Voltar para OS">
+      <!-- círculo vermelho -->
+      <circle cx="50" cy="50" r="46" fill="#CC0000"/>
+      <!-- raio preto — forma idêntica à marca: largo no topo, estreito na ponta -->
+      <polygon points="56,12 40,52 51,52 44,88 68,44 56,44" fill="#0a0a0a"/>
     </svg>
     <span class="nav-user" id="nav-user-chip">—</span>
         <span id="conn-status" style="font-size:10px;color:var(--dim);margin-left:4px">⏳</span>
