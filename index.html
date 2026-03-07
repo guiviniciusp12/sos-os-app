@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v3.9</title>
+  <title>SOS Energia — OS Digital v4.0</title>
   <style>
     :root{
       --red:#CC0000;--red-dark:#990000;--red-light:#ff3333;
@@ -1062,52 +1062,61 @@ function buildOpForm(os){
     ${(()=>{
       const temGerador=(os.equipamentos&&os.equipamentos.some(e=>e.tipo==='gerador'))||(os.potencia&&!os.equipamentos?.length);
       const geradores=(os.equipamentos||[]).filter(e=>e.tipo==='gerador');
+      // Blocos por gerador: cada um tem Ligou, Desligou, HorIni, HorFim, HE própria
+      const geradoresHtml = geradores.length > 0
+        ? geradores.map((g,gi)=>`
+          <div style="background:rgba(204,0,0,.06);border:1px solid rgba(204,0,0,.25);border-radius:10px;padding:12px;margin-bottom:12px">
+            <div style="font-size:11px;font-weight:700;color:var(--red-light);margin-bottom:8px">⚡ ${g.potencia||'Gerador '+(gi+1)}${g.patrimonio?' &middot; '+g.patrimonio:''}</div>
+            <div class="grid2" style="margin-bottom:8px">
+              <div class="field" style="margin:0"><label style="font-size:10px">Ligou</label>
+                <input type="time" id="op-part-${gi}" oninput="calcHEGerador(${gi})"/>
+              </div>
+              <div class="field" style="margin:0"><label style="font-size:10px">Desligou</label>
+                <input type="time" id="op-par-${gi}" oninput="calcHEGerador(${gi})"/>
+              </div>
+            </div>
+            <div class="grid2" style="margin-bottom:8px">
+              <div class="field" style="margin:0"><label style="font-size:10px">Horímetro Inicial</label>
+                <input type="number" id="op-hi-${gi}" step="0.1" placeholder="4520" oninput="calcHEGerador(${gi})"/>
+              </div>
+              <div class="field" style="margin:0"><label style="font-size:10px">Horímetro Final</label>
+                <input type="number" id="op-hf-${gi}" step="0.1" placeholder="Auto" readonly style="background:var(--dark);color:var(--dim)"/>
+              </div>
+            </div>
+            <div id="he-info-${gi}" style="display:none;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:8px;font-size:12px;margin-bottom:8px">
+              <strong style="color:var(--yellow)">⚠️ HE detectada</strong>
+              <span id="he-info-txt-${gi}" style="color:var(--dim);margin-left:6px"></span>
+              <div class="grid2" style="margin-top:6px">
+                <div class="field" style="margin:0"><label style="font-size:10px">Início HE</label>
+                  <input type="time" id="op-he-ini-${gi}" oninput="calcHEGerador(${gi})"/>
+                </div>
+                <div class="field" style="margin:0"><label style="font-size:10px">Fim HE</label>
+                  <input type="time" id="op-he-fim-${gi}" oninput="calcHEGerador(${gi})"/>
+                </div>
+              </div>
+            </div>
+          </div>`).join('')
+        : `<div class="grid2">
+            <div class="field"><label>Ligou</label><input type="time" id="op-part-0" oninput="calcHEGerador(0)"/></div>
+            <div class="field"><label>Desligou</label><input type="time" id="op-par-0" oninput="calcHEGerador(0)"/></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Horímetro Inicial</label><input type="number" id="op-hi-0" step="0.1" placeholder="4520" oninput="calcHEGerador(0)"/></div>
+            <div class="field"><label>Horímetro Final</label><input type="number" id="op-hf-0" step="0.1" placeholder="Auto" readonly style="background:var(--dark);color:var(--dim)"/></div>
+          </div>`;
       return temGerador?`
+    <input type="hidden" id="op-part" value=""/>
+    <input type="hidden" id="op-par" value=""/>
+    <input type="hidden" id="op-hi" value=""/>
+    <input type="hidden" id="op-hf" value=""/>
+    <input type="hidden" id="op-he-ini" value=""/>
+    <input type="hidden" id="op-he-fim" value=""/>
     <div class="card">
       <div class="card-title">Registro do Dia</div>
       <div class="field"><label>Data</label><input type="date" id="op-data" value="${hoje}"/></div>
-      ${geradores.length>1 ? `
-      <div style="margin-bottom:12px">
-        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--dim);margin-bottom:8px">Horário por Gerador</div>
-        ${geradores.map((g,gi)=>`
-        <div style="background:var(--dark);border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">
-          <div style="font-size:11px;font-weight:700;color:var(--red-light);margin-bottom:6px">⚡ ${g.potencia||'Gerador '+(gi+1)} ${g.patrimonio?'· '+g.patrimonio:''}</div>
-          <div class="grid2">
-            <div class="field" style="margin:0"><label style="font-size:10px">Ligou</label><input type="time" id="op-part-${gi}" oninput="calcHE()"/></div>
-            <div class="field" style="margin:0"><label style="font-size:10px">Desligou</label><input type="time" id="op-par-${gi}" oninput="calcHE()"/></div>
-          </div>
-        </div>`).join('')}
-      </div>
-      <input type="hidden" id="op-part" oninput="calcHE()"/>
-      <input type="hidden" id="op-par" oninput="calcHE()"/>
-      ` : `
-      <div class="grid2">
-        <div class="field"><label>Horário Liga (Partida)</label><input type="time" id="op-part" oninput="calcHE()"/></div>
-        <div class="field"><label>Horário Desliga (Parada)</label><input type="time" id="op-par" oninput="calcHE()"/></div>
-      </div>
-      `}
-      <div class="grid2">
-        <div class="field"><label>Horímetro Inicial</label><input type="number" id="op-hi" step="0.1" placeholder="4520" required oninput="calcHorFinal()"/></div>
-        <div class="field"><label>Horímetro Final</label><input type="number" id="op-hf" step="0.1" placeholder="Calculado automaticamente"/></div>
-      </div>
-      <div class="he-warn" id="he-maq-warn">
-        <strong style="color:var(--yellow)">⚠️ Horas extras de máquina</strong>
-        <p id="he-maq-txt" style="font-size:13px;margin-top:4px"></p>
-        <p style="font-size:12px;color:var(--dim);margin-top:3px">Comunique ao cliente — haverá cobrança adicional.</p>
-      </div>
-      <div id="he-periodo-container" style="display:none">
-        <div class="alert alert-yellow" style="margin-bottom:8px;font-size:12px">
-          ⚠️ <strong>Hora extra detectada.</strong> Informe o período de hora extra trabalhado:
-        </div>
-        <p style="font-size:12px;color:var(--dim);margin-bottom:10px">
-          Hora extra: Seg-Sex das <strong>18h às 08h</strong> | Sáb a partir das <strong>12h</strong> até <strong>08h de segunda</strong>.
-        </p>
-        <div class="grid2">
-          <div class="field"><label>Início da HE</label><input type="time" id="op-he-ini" oninput="calcHE()"/></div>
-          <div class="field"><label>Fim da HE</label><input type="time" id="op-he-fim" oninput="calcHE()"/></div>
-        </div>
-      </div>
-      <div class="field" style="margin-top:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 8px">Horários por gerador</div>
+      ${geradoresHtml}
+      <div class="field" style="margin-top:4px">
         <label>Gerador foi abastecido?</label>
         <select id="op-abastecido" onchange="toggleAbastecimento()">
           <option value="nao">Não</option>
@@ -1115,8 +1124,7 @@ function buildOpForm(os){
         </select>
       </div>
       <div id="op-litros-container" style="display:none">
-        <div class="field">
-          <label>Quantos litros?</label>
+        <div class="field"><label>Quantos litros?</label>
           <input type="number" id="op-litros" min="0" step="1" placeholder="Ex: 100"/>
         </div>
       </div>
@@ -1214,42 +1222,56 @@ function opStep(n){
   if(n===3) setTimeout(initSig,80);
 }
 
-function calcHE(){
-  if(!opOS) return;
-  const data=document.getElementById('op-data')?.value;
-  const part=document.getElementById('op-part')?.value;
-  const par=document.getElementById('op-par')?.value;
-  if(!part||!par) return;
-  const pM=toMin(part),sM=toMin(par);
-  const totH=(sM>pM?sM-pM:sM+1440-pM)/60;
-  // HE máquina
-  const dc=opOS.diasContratados?.find(d=>d.data===data);
-  const wEl=document.getElementById('he-maq-warn');
-  // HE máquina — regra: contrato sempre 12h independente do horário
-  const CONTRATO_MAQUINA_H = 12;
-  const heM_calc = Math.max(0, totH - CONTRATO_MAQUINA_H);
-  if(wEl){
-    if(heM_calc > 0){
-      document.getElementById('he-maq-txt').textContent=`Gerador operou ${totH.toFixed(1)}h — excedeu ${fmtHE(heM_calc)} do contrato de ${CONTRATO_MAQUINA_H}h.`;
-      wEl.classList.add('show');
-    } else wEl.classList.remove('show');
+// Calcula HE por gerador individual (gi = índice do gerador)
+function calcHEGerador(gi){
+  const CONTRATO_H = 12;
+  const ligou = document.getElementById('op-part-'+gi)?.value;
+  const desligou = document.getElementById('op-par-'+gi)?.value;
+  const hiEl = document.getElementById('op-hi-'+gi);
+  const hfEl = document.getElementById('op-hf-'+gi);
+  const heInfoEl = document.getElementById('he-info-'+gi);
+  const heInfoTxt = document.getElementById('he-info-txt-'+gi);
+
+  if(ligou && desligou){
+    const pM=toMin(ligou), sM=toMin(desligou);
+    const totH=(sM>pM?sM-pM:sM+1440-pM)/60;
+    // Horímetro final automático
+    const hi=parseFloat(hiEl?.value)||0;
+    if(hi && hfEl) hfEl.value=(hi+totH).toFixed(1);
+    // HE detecção: > 12h contratadas
+    const heH=Math.max(0, totH-CONTRATO_H);
+    if(heInfoEl){
+      if(heH>0){
+        heInfoEl.style.display='block';
+        if(heInfoTxt) heInfoTxt.textContent=`${fmtHE(totH)} rodadas — ${fmtHE(heH)} de HE`;
+      } else {
+        heInfoEl.style.display='none';
+      }
+    }
+  } else if(hiEl && hfEl && hiEl.value){
+    // Só horímetro, sem horário
+    hfEl.value='';
+    if(heInfoEl) heInfoEl.style.display='none';
   }
-  // Mostra campo de período de HE se houver HE
-  const hePeriodoContainer = document.getElementById('he-periodo-container');
-  if(hePeriodoContainer) hePeriodoContainer.style.display = heM_calc > 0 ? 'block' : 'none';
-  calcHorFinal();
+  // Atualizar campos legado (primeiro gerador)
+  if(gi===0){
+    const p0=document.getElementById('op-part-0')?.value||'';
+    const s0=document.getElementById('op-par-0')?.value||'';
+    const h0=document.getElementById('op-hi-0')?.value||'';
+    const hf0=document.getElementById('op-hf-0')?.value||'';
+    const el_p=document.getElementById('op-part'); if(el_p) el_p.value=p0;
+    const el_s=document.getElementById('op-par'); if(el_s) el_s.value=s0;
+    const el_hi=document.getElementById('op-hi'); if(el_hi) el_hi.value=h0;
+    const el_hf=document.getElementById('op-hf'); if(el_hf) el_hf.value=hf0;
+  }
 }
 
+function calcHE(){ calcHEGerador(0); }
+
 function calcHorFinal(){
-  const part=document.getElementById('op-part')?.value;
-  const par=document.getElementById('op-par')?.value;
-  const hi=parseFloat(document.getElementById('op-hi')?.value)||0;
-  if(!part||!par||!hi) return;
-  const pM=toMin(part), sM=toMin(par);
-  const totH=(sM>pM?sM-pM:sM+1440-pM)/60;
-  const hf=(hi+totH).toFixed(1);
-  const hfEl=document.getElementById('op-hf');
-  if(hfEl) hfEl.value=hf;
+  const geradores=(opOS?.equipamentos||[]).filter(e=>e.tipo==='gerador');
+  const count=geradores.length||1;
+  for(let gi=0;gi<count;gi++) calcHEGerador(gi);
 }
 
 function toggleAbastecimento(){
@@ -1307,23 +1329,33 @@ function finalizarReg(){
   // HE do operador = diferença entre heIni e heFim que ele informou
   // Coletar horários de todos os geradores
   const gerOp=(opOS.equipamentos||[]).filter(e=>e.tipo==='gerador');
-  const horariosGeradores = gerOp.length>0 ? gerOp.map((g,gi)=>({
-    id:g.id, potencia:g.potencia, patrimonio:g.patrimonio,
-    ligou: document.getElementById('op-part-'+gi)?.value||'',
-    desligou: document.getElementById('op-par-'+gi)?.value||'',
-    horIni: document.getElementById('op-hi-'+gi)?.value||'',
-    horFim: document.getElementById('op-hf-'+gi)?.value||''
-  })) : [];
-  // Compatibilidade: usar primeiro gerador para op-part/op-par/op-hi/op-hf legado
+  const horariosGeradores = gerOp.length>0 ? gerOp.map((g,gi)=>{
+    const ligou=document.getElementById('op-part-'+gi)?.value||'';
+    const desligou=document.getElementById('op-par-'+gi)?.value||'';
+    const horIni=document.getElementById('op-hi-'+gi)?.value||'';
+    const horFim=document.getElementById('op-hf-'+gi)?.value||'';
+    const heIniG=document.getElementById('op-he-ini-'+gi)?.value||'';
+    const heFimG=document.getElementById('op-he-fim-'+gi)?.value||'';
+    let horasRodadas=0;
+    if(ligou&&desligou){const pM=toMin(ligou),sM=toMin(desligou);horasRodadas=(sM>pM?sM-pM:sM+1440-pM)/60;}
+    let heH=0;
+    if(heIniG&&heFimG){const pM=toMin(heIniG),sM=toMin(heFimG);heH=(sM>pM?sM-pM:sM+1440-pM)/60;}
+    return {id:g.id,potencia:g.potencia,patrimonio:g.patrimonio,ligou,desligou,horIni,horFim,horasRodadas,heIni:heIniG,heFim:heFimG,heH};
+  }) : [];
+  // Compatibilidade: usar primeiro gerador para campos legado
   if(gerOp.length>0){
-    const g0 = document.getElementById('op-part-0');
-    const gp0 = document.getElementById('op-par-0');
-    if(g0) document.getElementById('op-part').value = g0.value||'';
-    if(gp0) document.getElementById('op-par').value = gp0.value||'';
-    const hi0 = document.getElementById('op-hi-0');
-    const hf0 = document.getElementById('op-hf-0');
-    if(hi0) document.getElementById('op-hi').value = hi0.value||'';
-    if(hf0) document.getElementById('op-hf').value = hf0.value||'';
+    const g0=document.getElementById('op-part-0');
+    const gp0=document.getElementById('op-par-0');
+    if(g0) document.getElementById('op-part').value=g0.value||'';
+    if(gp0) document.getElementById('op-par').value=gp0.value||'';
+    const hi0=document.getElementById('op-hi-0');
+    const hf0=document.getElementById('op-hf-0');
+    if(hi0) document.getElementById('op-hi').value=hi0.value||'';
+    if(hf0) document.getElementById('op-hf').value=hf0.value||'';
+    const hei0=document.getElementById('op-he-ini-0');
+    const hef0=document.getElementById('op-he-fim-0');
+    if(hei0) document.getElementById('op-he-ini').value=hei0.value||'';
+    if(hef0) document.getElementById('op-he-fim').value=hef0.value||'';
   }
   const _heIni=document.getElementById('op-he-ini')?.value||'';
   const _heFim=document.getElementById('op-he-fim')?.value||'';
