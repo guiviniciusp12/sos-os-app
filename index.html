@@ -1210,7 +1210,7 @@ function finalizarReg(){
   const sigOperador=sigPads['sigCanvasOp']?.hasData?document.getElementById('sigCanvasOp').toDataURL('image/png'):null;
   lastReg={
     id:'reg_'+Date.now(),osId:opOS.id,osNum:opOS.num,cliente:opOS.cliente,
-    operadorId:opOS.operadorId,operadorNome:opOS.operadorNome,
+    operadorId:sessaoAtual.id,operadorNome:sessaoAtual.nome,
     data,partida:part,parada:par,
     horIni:document.getElementById('op-hi')?.value||'',
     horFim:document.getElementById('op-hf')?.value||'',
