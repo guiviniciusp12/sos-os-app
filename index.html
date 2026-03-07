@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v4.7</title>
+  <title>SOS Energia — OS Digital v4.8</title>
   <style>
     :root{
       --red:#CC0000;--red-dark:#990000;--red-light:#ff3333;
@@ -960,7 +960,7 @@ function verOS(id){
     </table>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
       ${renderLinksOperadores(os,link)}
-      <button class="btn btn-primary btn-sm" style="width:auto;background:var(--card2);border:1px solid var(--border);color:var(--text)" onclick="showFormOS('${os.id}')">✏️ Editar OS</button>
+      <button class="btn btn-primary btn-sm" style="width:auto;background:var(--card2);border:1px solid var(--border);color:var(--text)" data-oid="${os.id}" onclick="showFormOS(this.dataset.oid)">✏️ Editar OS</button>
     </div>
   </div>
   <div class="card">
@@ -973,16 +973,16 @@ function verOS(id){
         </div>
         <div style="font-size:12px;color:var(--dim)">Liga: ${r.partida} · Desliga: ${r.parada} · Hor: ${r.horIni}→${r.horFim}</div>
         ${r.obs?`<div style="font-size:12px;color:var(--dim);margin-top:3px">${r.obs}</div>`:''}
-        ${r.heOperador>0?`<div style="font-size:12px;color:var(--yellow);margin-top:3px">HE operador: ${fmtHE(r.heOperador)} → R$ ${(r.valorHEOperador!=null?r.valorHEOperador:r.heOperador*config.heValor).toFixed(2)} <button onclick="editarHEReg('${r.id}','${id}')" style="margin-left:6px;font-size:10px;padding:1px 7px;border-radius:6px;border:1px solid var(--yellow);background:transparent;color:var(--yellow);cursor:pointer">✏️ Editar HE</button></div>`:`<div style="font-size:12px;color:var(--dim);margin-top:3px">HE operador: — <button onclick="editarHEReg('${r.id}','${id}')" style="margin-left:6px;font-size:10px;padding:1px 7px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--dim);cursor:pointer">✏️ Lançar HE</button></div>`}
+        ${r.heOperador>0?`<div style="font-size:12px;color:var(--yellow);margin-top:3px">HE operador: ${fmtHE(r.heOperador)} → R$ ${(r.valorHEOperador!=null?r.valorHEOperador:r.heOperador*config.heValor).toFixed(2)} <button data-rid="${r.id}" data-oid="${id}" onclick="editarHEReg(this.dataset.rid,this.dataset.oid)" style="margin-left:6px;font-size:10px;padding:1px 7px;border-radius:6px;border:1px solid var(--yellow);background:transparent;color:var(--yellow);cursor:pointer">✏️ Editar HE</button></div>`:`<div style="font-size:12px;color:var(--dim);margin-top:3px">HE operador: — <button data-rid="${r.id}" data-oid="${id}" onclick="editarHEReg(this.dataset.rid,this.dataset.oid)" style="margin-left:6px;font-size:10px;padding:1px 7px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--dim);cursor:pointer">✏️ Lançar HE</button></div>`}
         <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
           ${r.assinatura?`<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura cliente</div><img src="${r.assinatura}" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>`:''}
           ${r.assinaturaOp?`<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura operador</div><img src="${r.assinaturaOp}" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>`:''}
         </div>
       </div>`).join(''):'<p style="color:var(--dim);font-size:13px">Nenhum registro ainda.</p>'}
   </div>
-  ${os.status!=='fechada'?`<button class="btn btn-green" onclick="fecharOSConf('${os.id}')">✓ Fechar OS</button>`:''}
-  ${regs.length?`<button class="btn btn-primary" style="margin-top:8px;background:#1a1a2e;border:1px solid var(--red)" onclick="gerarPDFOS('${os.id}')">📄 Gerar PDF da OS</button>`:''}
-  <button class="btn btn-ghost" style="margin-top:8px;color:var(--red-light);border-color:rgba(204,0,0,.3)" onclick="excluirOS('${os.id}')">🗑 Excluir OS</button>
+  ${os.status!=='fechada'?`<button class="btn btn-green" data-oid="${os.id}" onclick="fecharOSConf(this.dataset.oid)">✓ Fechar OS</button>`:''}
+  ${regs.length?`<button class="btn btn-primary" style="margin-top:8px;background:#1a1a2e;border:1px solid var(--red)" data-oid="${os.id}" onclick="gerarPDFOS(this.dataset.oid)">📄 Gerar PDF da OS</button>`:''}
+  <button class="btn btn-ghost" style="margin-top:8px;color:var(--red-light);border-color:rgba(204,0,0,.3)" data-oid="${os.id}" onclick="excluirOS(this.dataset.oid)">🗑 Excluir OS</button>
   <button class="btn btn-ghost" style="margin-top:8px" onclick="fecharDet()">← Voltar</button>`;
 }
 function fecharDet(){document.getElementById('os-detalhe').style.display='none';document.getElementById('os-list').closest('.card').style.display='block';}
