@@ -1062,9 +1062,15 @@ function buildOpForm(os){
         <div class="field"><label>Placa</label><input id="op-placa" style="text-transform:uppercase" placeholder="ABC-1234"/></div>
         <div class="field"><label>Motorista</label><input id="op-mot" placeholder="Nome completo"/></div>
       </div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);margin:10px 0 6px">🏢 → 📍 Ida ao evento</div>
       <div class="grid2">
-        <div class="field"><label>Saída</label><input id="op-itin-saida" placeholder="Ex: Sede SOS — 07h30"/></div>
-        <div class="field"><label>Chegada</label><input id="op-itin-chegada" placeholder="Ex: Parque Olímpico — 09h15"/></div>
+        <div class="field"><label>Saída da empresa</label><input type="time" id="op-itin-saida"/></div>
+        <div class="field"><label>Chegada no evento</label><input type="time" id="op-itin-chegada"/></div>
+      </div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);margin:10px 0 6px">📍 → 🏢 Volta para empresa</div>
+      <div class="grid2">
+        <div class="field"><label>Saída do evento</label><input type="time" id="op-itin-saida-volta"/></div>
+        <div class="field"><label>Chegada na empresa</label><input type="time" id="op-itin-chegada-volta"/></div>
       </div>
     </div>
     <button class="btn btn-primary" onclick="opStep(3)">Próximo: Assinatura →</button>
@@ -1224,6 +1230,8 @@ function finalizarReg(){
     motorista:document.getElementById('op-mot')?.value||'',
     itinerarioSaida:document.getElementById('op-itin-saida')?.value||'',
     itinerarioChegada:document.getElementById('op-itin-chegada')?.value||'',
+    itinerarioSaidaVolta:document.getElementById('op-itin-saida-volta')?.value||'',
+    itinerarioChegadaVolta:document.getElementById('op-itin-chegada-volta')?.value||'',
     respCliente:document.getElementById('op-resp')?.value||'',
     nomeOperador:document.getElementById('op-nome-op')?.value||opOS.operadorNome||'',
     assinatura:sigCliente,assinaturaOp:sigOperador,
@@ -1765,8 +1773,10 @@ function _gerarPDF(os, regsOS){
         <div><span class="lbl">Operador</span><span class="val">${r.nomeOperador||r.operadorNome||'—'}</span></div>
         <div><span class="lbl">Motorista</span><span class="val">${r.motorista||'—'}</span></div>
         <div><span class="lbl">Placa</span><span class="val">${r.placa||'—'}</span></div>
-        <div><span class="lbl">Saída</span><span class="val">${r.itinerarioSaida||r.itinerario||'—'}</span></div>
-        <div><span class="lbl">Chegada</span><span class="val">${r.itinerarioChegada||'—'}</span></div>
+        <div><span class="lbl">Saída empresa</span><span class="val">${r.itinerarioSaida||r.itinerario||'—'}</span></div>
+        <div><span class="lbl">Chegada evento</span><span class="val">${r.itinerarioChegada||'—'}</span></div>
+        <div><span class="lbl">Saída evento</span><span class="val">${r.itinerarioSaidaVolta||'—'}</span></div>
+        <div><span class="lbl">Chegada empresa</span><span class="val">${r.itinerarioChegadaVolta||'—'}</span></div>
         ${heO>0?`<div class="span2"><span class="lbl">HE Operador</span><span class="val he-val">${heOMin}min → R$ ${valHE.toFixed(2)}</span></div>`:''}
         ${r.obs?`<div class="span2"><span class="lbl">Observações</span><span class="val">${r.obs}</span></div>`:''}
       </div>
