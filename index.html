@@ -1925,8 +1925,29 @@ ${(()=>{
   const acessorios=eqs.filter(e=>e.tipo==='acessorio');
   let html='';
   if(geradores.length){
-    html+=`<div style="font-size:9px;font-weight:700;color:#CC0000;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Geradores</div>`;
-    html+=`<div class="info-grid" style="margin-bottom:8px">`+geradores.map(g=>`<div class="info-row"><span class="info-lbl">⚡ ${g.potencia||'—'}</span><span class="info-val">Patrimônio: ${g.patrimonio||'—'}</span></div>`).join('')+`</div>`;
+    html+=`<div style="font-size:9px;font-weight:700;color:#CC0000;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Geradores</div>`;
+    html+=`<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:8px">
+      <thead><tr style="background:#f3f3f3">
+        <th style="padding:5px 8px;text-align:left;border:1px solid #ddd;font-size:9px;color:#555;text-transform:uppercase">Potência</th>
+        <th style="padding:5px 8px;text-align:left;border:1px solid #ddd;font-size:9px;color:#555;text-transform:uppercase">Patrimônio</th>
+        <th style="padding:5px 8px;text-align:right;border:1px solid #ddd;font-size:9px;color:#555;text-transform:uppercase">Horas rodadas</th>
+        <th style="padding:5px 8px;text-align:right;border:1px solid #ddd;font-size:9px;color:#CC0000;text-transform:uppercase">HE R$/hora</th>
+      </tr></thead>
+      <tbody>`+geradores.map(g=>{
+        // Soma horas rodadas por horímetro de todos os registros
+        const horasRodadas=regsOS.reduce((acc,r)=>{
+          const hi=parseFloat(r.horIni)||0;
+          const hf=parseFloat(r.horFim)||0;
+          return acc+(hf>hi?hf-hi:0);
+        },0);
+        const heVal=parseFloat(g.heValorGerador)||0;
+        return `<tr>
+          <td style="padding:5px 8px;border:1px solid #ddd;font-weight:700">⚡ ${g.potencia||'—'}</td>
+          <td style="padding:5px 8px;border:1px solid #ddd">${g.patrimonio||'—'}</td>
+          <td style="padding:5px 8px;border:1px solid #ddd;text-align:right">${horasRodadas>0?horasRodadas.toFixed(1)+'h':'—'}</td>
+          <td style="padding:5px 8px;border:1px solid #ddd;text-align:right;color:${heVal>0?'#CC0000':'#888'};font-weight:700">${heVal>0?'R$ '+heVal.toFixed(2)+'/h':'Não informado'}</td>
+        </tr>`;
+      }).join('')+`</tbody></table>`;
   }
   if(acessorios.length){
     html+=`<div style="font-size:9px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:4px">Acessórios</div>`;
