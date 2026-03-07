@@ -1283,19 +1283,8 @@ function _finalizarRegUI(){
 function enviarWPP(){
   if(!lastReg){alert('Nenhum registro ativo.');return;}
   const num=config.wppNumero?config.wppNumero.replace(/\D/g,''):'';
-  const heMin=Math.round(lastReg.heOperador*60);
-  const valHE=lastReg.valorHEOperador||0;
-  const texto=`✅ *OS ${lastReg.osNum} — CONCLUÍDA*\n\n`+
-    `*Cliente:* ${lastReg.cliente}\n`+
-    `*Operador:* ${lastReg.nomeOperador||lastReg.operadorNome||'—'}\n`+
-    `*Data:* ${fmtData(lastReg.data)}\n`+
-    `*Liga:* ${lastReg.partida}  |  *Desliga:* ${lastReg.parada}\n`+
-    `*Total trabalhado:* ${lastReg.totalHoras.toFixed(1)}h\n`+
-    `*Horímetro:* ${lastReg.horIni||'—'} → ${lastReg.horFim||'—'}\n`+
-    (lastReg.heMaquina>0?`*⚠️ HE Máquina:* ${lastReg.heMaquina.toFixed(1)}h (faturar ao cliente)\n`:'')+
-    (lastReg.heOperador>0?`*HE Operador:* ${heMin}min → R$ ${valHE.toFixed(2)}\n`:'')+
-    (lastReg.obs?`*Obs:* ${lastReg.obs}\n`:'')+
-    `\n_Enviado via SOS OS Digital_`;
+  const nomeOp=lastReg.nomeOperador||lastReg.operadorNome||'';
+  const texto=`Olá, Lilia,\n\nMeu evento foi finalizado com sucesso, segue minha OS no app da SOS OS Digital.\n\nObrigado,\n${nomeOp}`;
   const url='https://wa.me/'+(num?num:'')+'?text='+encodeURIComponent(texto);
   window.open(url,'_blank');
 }
