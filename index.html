@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v3.5</title>
+  <title>SOS Energia — OS Digital v3.6</title>
   <style>
     :root{
       --red:#CC0000;--red-dark:#990000;--red-light:#ff3333;
@@ -428,6 +428,41 @@ function doLogin(){
   doLoginFirebase(u, p);
 }
 
+// ════════════════════════════════════════
+// BUSCA CEP (ViaCEP)
+// ════════════════════════════════════════
+let _cepTimer = null;
+function buscarCEP(val){
+  // formata automaticamente com hífen
+  val = val.replace(/\D/g,'');
+  if(val.length > 5) val = val.slice(0,5) + '-' + val.slice(5,8);
+  const el = document.getElementById('f-cep');
+  if(el && el.value !== val) el.value = val;
+
+  const digits = val.replace(/\D/g,'');
+  const status = document.getElementById('cep-status');
+  if(digits.length < 8){ if(status) status.textContent=''; return; }
+  if(status) status.textContent='⏳';
+  clearTimeout(_cepTimer);
+  _cepTimer = setTimeout(()=>{
+    fetch('https://viacep.com.br/ws/'+digits+'/json/')
+      .then(r=>r.json())
+      .then(d=>{
+        if(d.erro){ if(status) status.textContent='❌'; return; }
+        const end = document.getElementById('f-end');
+        const cid = document.getElementById('f-cid');
+        const uf  = document.getElementById('f-uf');
+        // Preenche endereço apenas se estiver vazio
+        if(end && !end.value) end.value = (d.logradouro||'') + (d.bairro ? ', '+d.bairro : '');
+        if(cid) cid.value = d.localidade||'';
+        if(uf)  uf.value  = d.uf||'';
+        if(status) status.textContent='✅';
+        setTimeout(()=>{ if(status) status.textContent=''; },2000);
+      })
+      .catch(()=>{ if(status) status.textContent='❌'; });
+  }, 600);
+}
+
 function doLogout(){
   if(!confirm('Sair da conta?')) return;
   // desliga listeners Firebase
@@ -553,7 +588,7 @@ function showFormOS(osId){
     <div class="grid3">
       <div class="field"><label>Cidade</label><input id="f-cid" value="${osEdit?osEdit.cidade||'':''}"/></div>
       <div class="field"><label>UF</label><input id="f-uf" value="${osEdit?osEdit.uf||'':''}" maxlength="2" style="text-transform:uppercase"/></div>
-      <div class="field"><label>CEP</label><input id="f-cep" value="${osEdit?osEdit.cep||'':''}"/></div>
+      <div class="field" style="position:relative"><label>CEP</label><input id="f-cep" value="${osEdit?osEdit.cep||'':''}" placeholder="00000-000" maxlength="9" oninput="buscarCEP(this.value)"/><span id="cep-status" style="position:absolute;right:10px;bottom:8px;font-size:13px;pointer-events:none"></span></div>
     </div>
     <div class="grid2">
       <div class="field"><label>Contato</label><input id="f-contato" value="${osEdit?osEdit.contato||'':''}"/></div>
