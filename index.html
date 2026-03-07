@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v4.9</title>
+  <title>SOS Energia — OS Digital v5.0</title>
   <style>
     :root{
       --red:#CC0000;--red-dark:#990000;--red-light:#ff3333;
@@ -936,15 +936,8 @@ function showLinkPopup(os,link){
   document.body.appendChild(pop);
 }
 
-function verOS(id){
-  const os=ordens.find(o=>o.id===id);if(!os) return;
-  document.getElementById('os-list').closest('.card').style.display='none';
+function _renderVerOS(os, regs){
   const det=document.getElementById('os-detalhe');
-  det.style.display='block';
-  det.innerHTML='<div class="card" style="text-align:center;padding:32px;color:var(--dim)">Carregando registros...</div>';
-  // Busca registros frescos do Firebase antes de renderizar
-  const doRender=(regs)=>{
-  det.innerHTML='';
   const link=window.location.href.split('?')[0]+'?os='+os.id;
   det.innerHTML=`
   <div class="card">
@@ -976,7 +969,7 @@ function verOS(id){
         </div>
         <div style="font-size:12px;color:var(--dim)">Liga: ${r.partida} · Desliga: ${r.parada} · Hor: ${r.horIni}→${r.horFim}</div>
         ${r.obs?`<div style="font-size:12px;color:var(--dim);margin-top:3px">${r.obs}</div>`:''}
-        ${r.heOperador>0?`<div style="font-size:12px;color:var(--yellow);margin-top:3px">HE operador: ${fmtHE(r.heOperador)} → R$ ${(r.valorHEOperador!=null?r.valorHEOperador:r.heOperador*config.heValor).toFixed(2)} <button data-rid="${r.id}" data-oid="${id}" onclick="editarHEReg(this.dataset.rid,this.dataset.oid)" style="margin-left:6px;font-size:10px;padding:1px 7px;border-radius:6px;border:1px solid var(--yellow);background:transparent;color:var(--yellow);cursor:pointer">✏️ Editar HE</button></div>`:`<div style="font-size:12px;color:var(--dim);margin-top:3px">HE operador: — <button data-rid="${r.id}" data-oid="${id}" onclick="editarHEReg(this.dataset.rid,this.dataset.oid)" style="margin-left:6px;font-size:10px;padding:1px 7px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--dim);cursor:pointer">✏️ Lançar HE</button></div>`}
+        ${r.heOperador>0?`<div style="font-size:12px;color:var(--yellow);margin-top:3px">HE operador: ${r.heOperador.toFixed(2)}h → R$ ${(r.valorHEOperador!=null?r.valorHEOperador:r.heOperador*config.heValor).toFixed(2)}</div>`:''}
         <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
           ${r.assinatura?`<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura cliente</div><img src="${r.assinatura}" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>`:''}
           ${r.assinaturaOp?`<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura operador</div><img src="${r.assinaturaOp}" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>`:''}
@@ -987,85 +980,29 @@ function verOS(id){
   ${regs.length?`<button class="btn btn-primary" style="margin-top:8px;background:#1a1a2e;border:1px solid var(--red)" data-oid="${os.id}" onclick="gerarPDFOS(this.dataset.oid)">📄 Gerar PDF da OS</button>`:''}
   <button class="btn btn-ghost" style="margin-top:8px;color:var(--red-light);border-color:rgba(204,0,0,.3)" data-oid="${os.id}" onclick="excluirOS(this.dataset.oid)">🗑 Excluir OS</button>
   <button class="btn btn-ghost" style="margin-top:8px" onclick="fecharDet()">← Voltar</button>`;
-  }; // end doRender
-  // Busca do Firebase primeiro para garantir dados frescos
+}
+function verOS(id){
+  const os=ordens.find(o=>o.id===id);if(!os) return;
+  document.getElementById('os-list').closest('.card').style.display='none';
+  const det=document.getElementById('os-detalhe');
+  det.style.display='block';
+  det.innerHTML='<div style="text-align:center;padding:40px;color:var(--dim)">Carregando...</div>';
   if(db){
     db.ref('registros').once('value').then(snap=>{
       if(snap.val()){
         const fbRegs=Object.values(snap.val());
-        // Merge: atualiza registros locais com os do Firebase
-        fbRegs.forEach(r=>{ if(!registros.find(x=>x.id===r.id)) registros.push(r); });
-        // Atualiza registros que possam ter mudado
-        registros=registros.map(r=>{ const fb=fbRegs.find(x=>x.id===r.id); return fb||r; });
+        fbRegs.forEach(r=>{if(!registros.find(x=>x.id===r.id))registros.push(r);});
+        registros=registros.map(r=>{const fb=fbRegs.find(x=>x.id===r.id);return fb||r;});
         DB.set('sos_registros',registros);
       }
-      doRender(registros.filter(r=>r.osId===id));
-    }).catch(()=>doRender(registros.filter(r=>r.osId===id)));
+      _renderVerOS(os, registros.filter(r=>r.osId===id));
+    }).catch(()=>_renderVerOS(os, registros.filter(r=>r.osId===id)));
   } else {
-    doRender(registros.filter(r=>r.osId===id));
+    _renderVerOS(os, registros.filter(r=>r.osId===id));
   }
 }
 function fecharDet(){document.getElementById('os-detalhe').style.display='none';document.getElementById('os-list').closest('.card').style.display='block';}
 function fecharOSConf(id){if(confirm('Confirmar fechamento desta OS?')){const os=ordens.find(o=>o.id===id);if(os){os.status='fechada';saveAll();verOS(id);}}}
-
-function editarHEReg(regId, osId){
-  const reg=registros.find(r=>r.id===regId);
-  if(!reg){showToast('Registro não encontrado','err');return;}
-  // Cria modal inline sobre o detalhe da OS
-  const existing=document.getElementById('modal-edit-he');
-  if(existing) existing.remove();
-  const heIniAtual=reg.heIni||'';
-  const heFimAtual=reg.heFim||'';
-  const modal=document.createElement('div');
-  modal.id='modal-edit-he';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  modal.innerHTML=`
-    <div style="background:var(--card);border-radius:14px;padding:22px 20px;width:100%;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,.4)">
-      <div style="font-size:15px;font-weight:700;margin-bottom:4px">✏️ Editar HE do Operador</div>
-      <div style="font-size:12px;color:var(--dim);margin-bottom:16px">${fmtData(reg.data)} · ${reg.operadorNome||reg.nomeOperador||'—'}</div>
-      <div style="background:rgba(255,180,0,.12);border:1px solid rgba(255,180,0,.3);border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.6;margin-bottom:16px">
-        ⚠️ <strong>HE começa a computar:</strong><br>
-        • Seg–Sex: das 18h às 08h<br>
-        • Sábado: das 12h até 08h de segunda<br>
-        • Feriados: integral
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
-        <div><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px">Início da HE</label><input type="time" id="mhe-ini" value="${heIniAtual}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:14px"/></div>
-        <div><label style="font-size:11px;color:var(--dim);display:block;margin-bottom:4px">Fim da HE</label><input type="time" id="mhe-fim" value="${heFimAtual}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:14px"/></div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button onclick="salvarHEReg('${regId}','${osId}')" style="flex:1;padding:10px;border-radius:8px;border:none;background:var(--red);color:#fff;font-weight:700;cursor:pointer">Salvar</button>
-        <button onclick="document.getElementById('modal-edit-he').remove()" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text);cursor:pointer">Cancelar</button>
-      </div>
-    </div>`;
-  document.body.appendChild(modal);
-}
-
-function salvarHEReg(regId, osId){
-  const reg=registros.find(r=>r.id===regId);
-  if(!reg){showToast('Registro não encontrado','err');return;}
-  const ini=document.getElementById('mhe-ini')?.value||'';
-  const fim=document.getElementById('mhe-fim')?.value||'';
-  reg.heIni=ini;
-  reg.heFim=fim;
-  if(ini&&fim){
-    const hIniM=toMin(ini),hFimM=toMin(fim);
-    reg.heOperador=(hFimM>hIniM?hFimM-hIniM:hFimM+1440-hIniM)/60;
-    // Recalcular valor: usa heValor do usuário operador ou config geral
-    const op=usuarios.find(u=>u.id===reg.operadorId||u.nome===reg.operadorNome);
-    const heValH=op?.heValor||config.heValor||0;
-    reg.valorHEOperador=reg.heOperador*heValH;
-  } else {
-    reg.heOperador=0;
-    reg.valorHEOperador=0;
-  }
-  fbSaveWithFeedback(()=>saveAll(),null,null).then(()=>{
-    showToast('HE atualizada!');
-    document.getElementById('modal-edit-he')?.remove();
-    verOS(osId);
-  }).catch(e=>showToast('Erro ao salvar','err'));
-}
-
 function excluirOS(id){
   const os=ordens.find(o=>o.id===id);if(!os) return;
   const regsCount=registros.filter(r=>r.osId===id).length;
@@ -1394,9 +1331,8 @@ let lastReg=null;
 let regEnviado=false; // trava de reenvio
 function finalizarReg(){
   if(regEnviado){alert('Esta OS já foi enviada. Para registrar outro dia, volte e selecione a OS novamente.');return;}
-  // Coletar todos os geradores da OS
+  // Coletar geradores e copiar campos legado ANTES de validar
   const gerOp=(opOS.equipamentos||[]).filter(e=>e.tipo==='gerador');
-  // Copiar campos legado do primeiro gerador ANTES de validar
   if(gerOp.length>0){
     const g0=document.getElementById('op-part-0');
     const gp0=document.getElementById('op-par-0');
@@ -1412,7 +1348,7 @@ function finalizarReg(){
   const data=document.getElementById('op-data')?.value;
   const part=document.getElementById('op-part')?.value;
   const par=document.getElementById('op-par')?.value;
-  if(!data||!part||!par){alert('Preencha data e horários do gerador.');return;}
+  if(!data||!part||!par){alert('Preencha data e horários.');return;}
   const pM=toMin(part),sM=toMin(par);
   const totH=(sM>pM?sM-pM:sM+1440-pM)/60;
   // Coletar horários por gerador (múltiplos geradores)
@@ -1425,7 +1361,6 @@ function finalizarReg(){
       desliga:document.getElementById('op-par-'+gi)?.value||''
     }));
   }
-  // Coletar horários detalhados de todos os geradores
   const horariosGeradores = gerOp.length>0 ? gerOp.map((g,gi)=>{
     const ligou=document.getElementById('op-part-'+gi)?.value||'';
     const desligou=document.getElementById('op-par-'+gi)?.value||'';
@@ -1505,6 +1440,7 @@ function _finalizarRegUI(){
   const heO=lastReg.heOperador||0;
   const heM=lastReg.heMaquina||0;
   const valHEop=lastReg.valorHEOperador||0;
+  const heMin=Math.round(heO*60);
   const resumoEl=document.getElementById('op-ok-resumo');
   if(resumoEl){
     resumoEl.innerHTML=`
@@ -1574,6 +1510,7 @@ function gerarRel(){
     const he=op.regs.reduce((a,r)=>a+(r.heOperador||0),0);
     // Usa valorHEOperador gravado no registro (proporcional), ou recalcula
     const val=op.regs.reduce((a,r)=>a+(r.valorHEOperador!=null?r.valorHEOperador:r.heOperador*config.heValor),0);
+    const heMin=Math.round(he*60);
     totH+=h;totHE+=he;totVal+=val;
     linhas.push(`<tr><td>${op.nome}</td><td>${(h-he).toFixed(1)}h</td><td style="color:var(--yellow)">${fmtHE(he)}</td><td style="color:var(--yellow)">R$ ${val.toFixed(2)}</td><td><strong>${h.toFixed(1)}h</strong></td></tr>`);
   });
@@ -1584,8 +1521,8 @@ function gerarRel(){
   <div class="metric-grid">
     <div class="metric-card"><div class="metric-label">Registros</div><div class="metric-value">${regs.length}</div></div>
     <div class="metric-card"><div class="metric-label">Total horas</div><div class="metric-value">${totH.toFixed(1)}h</div></div>
-    <div class="metric-card"><div class="metric-label">HE Operadores</div><div class="metric-value" style="color:var(--yellow)">${fmtHE(totHE)}</div><div class="metric-sub">R$ ${totVal.toFixed(2)}</div></div>
-    <div class="metric-card"><div class="metric-label">HE Máquina</div><div class="metric-value" style="color:var(--yellow)">${fmtHE(totHEMaq)}</div><div class="metric-sub">a faturar ao cliente</div></div>
+    <div class="metric-card"><div class="metric-label">HE Operadores</div><div class="metric-value" style="color:var(--yellow)">${totHE.toFixed(1)}h</div><div class="metric-sub">R$ ${totVal.toFixed(2)}</div></div>
+    <div class="metric-card"><div class="metric-label">HE Máquina</div><div class="metric-value" style="color:var(--yellow)">${totHEMaq.toFixed(1)}h</div><div class="metric-sub">a faturar ao cliente</div></div>
   </div>
   <div class="card"><div class="card-title">Por Operador</div>
     <table class="tbl"><thead><tr><th>Operador</th><th>Normal</th><th>HE</th><th>Valor HE</th><th>Total</th></tr></thead>
@@ -2036,38 +1973,12 @@ function _gerarPDF(os, regsOS){
   try{
   regsOS=Array.isArray(regsOS)?regsOS:[];
   const totHoras=regsOS.reduce((a,r)=>a+(r.totalHoras||0),0);
-  // totHEMaq: soma a HE de cada gerador individualmente (via horariosGeradores);
-  // se não existir (registro antigo), usa heMaquina × nº de geradores
-  const totHEMaq=(()=>{
-    const nGer=((os.equipamentos||[]).filter(e=>e.tipo==='gerador')).length||1;
-    let soma=0;
-    regsOS.forEach(r=>{
-      if(r.horariosGeradores&&r.horariosGeradores.length){
-        r.horariosGeradores.forEach(g=>{ soma+=parseFloat(g.heH)||0; });
-      } else {
-        soma+=(r.heMaquina||0)*nGer;
-      }
-    });
-    return soma;
-  })();
-  // Custo total de HE máquina: soma (heH por gerador × heValorGerador do gerador)
+  const totHEMaq=regsOS.reduce((a,r)=>a+(r.heMaquina||0),0);
+  // Custo total de HE máquina: soma (heMaquina × heValorGerador) por gerador
   const totValHEMaq=(()=>{
-    if(!os.equipamentos) return 0;
+    if(!totHEMaq||!os.equipamentos) return 0;
     const geradores=(os.equipamentos||[]).filter(e=>e.tipo==='gerador');
-    if(!geradores.length) return 0;
-    let total=0;
-    geradores.forEach((g,gi)=>{
-      const heVal=parseFloat(g.heValorGerador)||0;
-      if(!heVal) return;
-      let heHG=0;
-      regsOS.forEach(r=>{
-        const gd=r.horariosGeradores&&r.horariosGeradores[gi];
-        if(gd){ heHG+=parseFloat(gd.heH)||0; }
-        else { heHG+=(r.heMaquina||0); }
-      });
-      total+=heHG*heVal;
-    });
-    return total;
+    return geradores.reduce((acc,g)=>acc+(parseFloat(g.heValorGerador)||0)*totHEMaq,0);
   })();
   // Recalcula HE do operador pelo período informado (heIni/heFim) — proporcional ao valor/hora
   let totHEOp=0, totValHE=0;
@@ -2091,6 +2002,7 @@ function _gerarPDF(os, regsOS){
   const registrosHTML=regsOS.map(r=>{
     const heM=r.heMaquina||0;
     const heO=r.heOperador||0;
+    const heOMin=Math.round(heO*60);
     const valHE=r.valorHEOperador||0;
     return `
     <div class="reg-box">
@@ -2110,7 +2022,7 @@ function _gerarPDF(os, regsOS){
         <div><span class="lbl">Chegada evento</span><span class="val">${r.itinerarioChegada||'—'}</span></div>
         <div><span class="lbl">Saída evento</span><span class="val">${r.itinerarioSaidaVolta||'—'}</span></div>
         <div><span class="lbl">Chegada empresa</span><span class="val">${r.itinerarioChegadaVolta||'—'}</span></div>
-        ${heO>0?`<div class="span2"><span class="lbl">HE Operador</span><span class="val he-val">${fmtHE(heO)} → R$ ${valHE.toFixed(2)}</span></div>`:''}
+        ${heO>0?`<div class="span2"><span class="lbl">HE Operador</span><span class="val he-val">${heOMin}min → R$ ${valHE.toFixed(2)}</span></div>`:''}
         ${r.obs?`<div class="span2"><span class="lbl">Observações</span><span class="val">${r.obs}</span></div>`:''}
       </div>
       <div class="sig-row">
@@ -2288,7 +2200,7 @@ ${registrosHTML||'<p style="color:#aaa;padding:8px 4px;font-size:11px">Nenhum re
   win.document.write(html);
   win.document.close();
   showToast('PDF pronto — clique em "Salvar / Imprimir PDF"');
-  }catch(e){const msg='Erro ao gerar PDF: '+(e&&e.message?e.message:String(e));console.error('_gerarPDF error',e);showToast(msg,'err');alert(msg);}
+  }catch(e){showToast('Erro ao gerar PDF: '+(e&&e.message?e.message:String(e)),'err');console.error('_gerarPDF error',e);}
 }
 
 // ════════════════════════════════════════
@@ -2351,7 +2263,7 @@ function loadHistorico(){
 // ════════════════════════════════════════
 function toMin(t){if(!t) return 0;const[h,m]=t.split(':').map(Number);return h*60+m;}
 function fmtData(d){if(!d) return '';const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}
-function fmtHE(h){if(!h||h<=0) return '—';const r=Math.round(h*100)/100;return r%1===0?`${r}h`:`${r.toFixed(2).replace(/\.?0+$/,'')}h`;}
+function fmtHE(h){if(!h||h<=0) return '—';const hInt=Math.floor(h);const min=Math.round((h-hInt)*60);if(min===0) return `${hInt}h`;return `${hInt}h ${min}min`;}
 
 function atualizarBadgeHEMes(){
   const badge=document.getElementById('nav-he-mes');
