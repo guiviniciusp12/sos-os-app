@@ -1054,7 +1054,10 @@ function buildOpForm(os){
         <div class="field"><label>Placa</label><input id="op-placa" style="text-transform:uppercase" placeholder="ABC-1234"/></div>
         <div class="field"><label>Motorista</label><input id="op-mot" placeholder="Nome completo"/></div>
       </div>
-      <div class="field"><label>Itinerário</label><input id="op-itin" placeholder="Origem → Destino → Retorno"/></div>
+      <div class="grid2">
+        <div class="field"><label>Saída</label><input id="op-itin-saida" placeholder="Ex: Sede SOS — 07h30"/></div>
+        <div class="field"><label>Chegada</label><input id="op-itin-chegada" placeholder="Ex: Parque Olímpico — 09h15"/></div>
+      </div>
     </div>
     <button class="btn btn-primary" onclick="opStep(3)">Próximo: Assinatura →</button>
     <button class="btn btn-ghost" style="margin-top:8px" onclick="opStep(1)">← Voltar</button>
@@ -1211,7 +1214,8 @@ function finalizarReg(){
     litros: document.getElementById('op-litros')?.value||'',
     placa:document.getElementById('op-placa')?.value||'',
     motorista:document.getElementById('op-mot')?.value||'',
-    itinerario:document.getElementById('op-itin')?.value||'',
+    itinerarioSaida:document.getElementById('op-itin-saida')?.value||'',
+    itinerarioChegada:document.getElementById('op-itin-chegada')?.value||'',
     respCliente:document.getElementById('op-resp')?.value||'',
     nomeOperador:document.getElementById('op-nome-op')?.value||opOS.operadorNome||'',
     assinatura:sigCliente,assinaturaOp:sigOperador,
@@ -1751,7 +1755,8 @@ function _gerarPDF(os, regsOS){
         <div><span class="lbl">Operador</span><span class="val">${r.nomeOperador||r.operadorNome||'—'}</span></div>
         <div><span class="lbl">Motorista</span><span class="val">${r.motorista||'—'}</span></div>
         <div><span class="lbl">Placa</span><span class="val">${r.placa||'—'}</span></div>
-        <div><span class="lbl">Itinerário</span><span class="val">${r.itinerario||'—'}</span></div>
+        <div><span class="lbl">Saída</span><span class="val">${r.itinerarioSaida||r.itinerario||'—'}</span></div>
+        <div><span class="lbl">Chegada</span><span class="val">${r.itinerarioChegada||'—'}</span></div>
         ${heO>0?`<div class="span2"><span class="lbl">HE Operador</span><span class="val he-val">${heOMin}min → R$ ${valHE.toFixed(2)}</span></div>`:''}
         ${r.obs?`<div class="span2"><span class="lbl">Observações</span><span class="val">${r.obs}</span></div>`:''}
       </div>
