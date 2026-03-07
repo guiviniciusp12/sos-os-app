@@ -1754,6 +1754,12 @@ function _gerarPDF(os, regsOS){
   regsOS=Array.isArray(regsOS)?regsOS:[];
   const totHoras=regsOS.reduce((a,r)=>a+(r.totalHoras||0),0);
   const totHEMaq=regsOS.reduce((a,r)=>a+(r.heMaquina||0),0);
+  // Custo total de HE máquina: soma (heMaquina × heValorGerador) por gerador
+  const totValHEMaq=(()=>{
+    if(!totHEMaq||!os.equipamentos) return 0;
+    const geradores=(os.equipamentos||[]).filter(e=>e.tipo==='gerador');
+    return geradores.reduce((acc,g)=>acc+(parseFloat(g.heValorGerador)||0)*totHEMaq,0);
+  })();
   // Recalcula HE do operador pelo período informado (heIni/heFim) — proporcional ao valor/hora
   let totHEOp=0, totValHE=0;
   regsOS.forEach(r=>{
@@ -1899,7 +1905,7 @@ function _gerarPDF(os, regsOS){
   <div class="metric"><div class="m-lbl">Registros</div><div class="m-val m-red">${regsOS.length}</div></div>
   <div class="metric"><div class="m-lbl">Horas Totais</div><div class="m-val">${totHoras.toFixed(1)}h</div></div>
   <div class="metric"><div class="m-lbl">HE Operador</div><div class="m-val ${totHEOp>0?'m-warn':'m-ok'}">${heOpMin}min</div><div style="font-size:10px;color:${totValHE>0?'#d97706':'#888'};margin-top:2px;font-weight:700">${totValHE>0?'R$ '+totValHE.toFixed(2):'—'}</div></div>
-  <div class="metric"><div class="m-lbl">HE Máquina</div><div class="m-val ${totHEMaq>0?'m-warn':'m-ok'}">${totHEMaq>0?totHEMaq.toFixed(1)+'h':'—'}</div></div>
+  <div class="metric"><div class="m-lbl">HE Máquina</div><div class="m-val ${totHEMaq>0?'m-warn':'m-ok'}">${totHEMaq>0?totHEMaq.toFixed(1)+'h':'—'}</div><div style="font-size:10px;color:${totValHEMaq>0?'#d97706':'#888'};margin-top:2px;font-weight:700">${totValHEMaq>0?'R$ '+totValHEMaq.toFixed(2):'—'}</div></div>
 </div>
 
 <div class="sec-title">Dados do Cliente / Evento</div>
