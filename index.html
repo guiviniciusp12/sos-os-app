@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v5.0</title>
+  <title>SOS Energia — OS Digital v5.1</title>
   <style>
     :root{
       --red:#CC0000;--red-dark:#990000;--red-light:#ff3333;
@@ -331,25 +331,26 @@ function doLoginFirebase(userVal, passVal) {
 
 // Funções de escrita Firebase
 function fbSet(path, data) {
-  return db.ref(path).set(data).catch(e => console.warn('Firebase write error:', e));
+  const p = db.ref(path).set(data);
+  return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000))]);
 }
 function fbSaveOrdens() {
   const obj = {};
   ordens.forEach(o => { obj[o.id] = o; });
-  fbSet('ordens', obj);
+  return fbSet('ordens', obj);
 }
 function fbSaveRegistros() {
   const obj = {};
   registros.forEach(r => { obj[r.id] = r; });
-  fbSet('registros', obj);
+  return fbSet('registros', obj);
 }
 function fbSaveUsuarios() {
   const obj = {};
   usuarios.forEach(u => { obj[u.id] = u; });
-  fbSet('usuarios', obj);
+  return fbSet('usuarios', obj);
 }
 function fbSaveConfig() {
-  fbSet('config', config);
+  return fbSet('config', config);
 }
 
 
@@ -1425,14 +1426,18 @@ function finalizarReg(){
   }
   const btnFin=document.getElementById('btn-finalizar');
   if(btnFin){btnFin.disabled=true;btnFin.textContent='Enviando...';}
+  // Salva local imediatamente — Firebase é best-effort com timeout de 10s
+  DB.set('sos_ordens',ordens);DB.set('sos_registros',registros);
   saveAll().then(()=>{
     regEnviado=true;
     _finalizarRegUI();
-  }).catch(e=>{
-    if(btnFin){btnFin.disabled=false;btnFin.textContent='✓ Enviar Assinaturas e Finalizar OS';}
-    showToast('Erro ao salvar: '+(e&&e.message?e.message:'falha'),'err');
+  }).catch(()=>{
+    // Firebase falhou mas dados já estão no localStorage — considera enviado
+    regEnviado=true;
+    _finalizarRegUI();
+    showToast('Salvo localmente (Firebase indisponível)','err');
   });
-  return; // execução continua em _finalizarRegUI após Promise
+  return;
 }
 function _finalizarRegUI(){
   if(config.webhook){fetch(config.webhook,{method:'POST',body:JSON.stringify({...lastReg,assinatura:lastReg.assinatura?'(capturada)':'não',assinaturaOp:lastReg.assinaturaOp?'(capturada)':'não'}),headers:{'Content-Type':'application/json'}}).catch(()=>{});}
