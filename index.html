@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v5.8</title>
+  <title>SOS Energia — OS Digital v5.9</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet"/>
@@ -2155,7 +2155,7 @@ function mascaraCnpjCpf(el){
   }
   el.value=v;
 }
-function fmtHE(h){if(!h||h<=0) return '—';return `${h.toFixed(2).replace(/\.?0+$/,'')}h`;}
+function fmtHE(h){if(!h||h<=0) return '—';const hInt=Math.floor(h);const min=Math.round((h-hInt)*60);return min===0?`${hInt}h`:`${hInt}h${min}min`;}
 
 function atualizarBadgeHEMes(){
   const badge=document.getElementById('nav-he-mes');
