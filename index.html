@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v5.4</title>
+  <title>SOS Energia — OS Digital v5.5</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet"/>
@@ -522,7 +522,7 @@ function showFormOS(osId){
       <div class="field"><label>Contato</label><input id="f-contato" value="${osEdit?osEdit.contato||'':''}"/></div>
       <div class="field"><label>Fone</label><input type="tel" id="f-fone" value="${osEdit?osEdit.fone||'':''}"/></div>
     </div>
-    <div class="field"><label>CNPJ</label><input id="f-cnpj" value="${osEdit?osEdit.cnpj||'':''}" placeholder="00.000.000/0001-00"/></div>
+    <div class="field"><label>CNPJ / CPF</label><input id="f-cnpj" value="${osEdit?osEdit.cnpj||'':''}" placeholder="CNPJ ou CPF do cliente" oninput="mascaraCnpjCpf(this)" maxlength="18"/></div>
     <div class="field"><label>Instruções para a Locação</label><textarea id="f-inst" placeholder="Horário de instalação, local exato, observações...">${osEdit?osEdit.instrucoes||'':''}</textarea></div>
   </div>
   <div class="card">
@@ -1979,7 +1979,7 @@ function _gerarPDF(os, regsOS){
   <div class="info-row"><span class="info-lbl">Cidade/UF</span><span class="info-val">${(os.cidade||'')+(os.uf?'/'+os.uf:'')}</span></div>
   <div class="info-row"><span class="info-lbl">Contato</span><span class="info-val">${os.contato||'—'}</span></div>
   <div class="info-row"><span class="info-lbl">Fone</span><span class="info-val">${os.fone||'—'}</span></div>
-  <div class="info-row"><span class="info-lbl">CNPJ</span><span class="info-val">${os.cnpj||'—'}</span></div>
+  <div class="info-row"><span class="info-lbl">CNPJ / CPF</span><span class="info-val">${os.cnpj||'—'}</span></div>
   <div class="info-row"><span class="info-lbl">Operador</span><span class="info-val">${os.operadorNome||'—'}</span></div>
   <div class="info-row"><span class="info-lbl">Período</span><span class="info-val">${os.dataSaida?fmtData(os.dataSaida):'—'} → ${os.dataRetorno?fmtData(os.dataRetorno):'—'}</span></div>
   ${os.instrucoes?`<div class="info-row info-full"><span class="info-lbl">Instruções</span><span class="info-val">${os.instrucoes}</span></div>`:''}
@@ -2106,6 +2106,23 @@ function loadHistorico(){
 // ════════════════════════════════════════
 function toMin(t){if(!t) return 0;const[h,m]=t.split(':').map(Number);return h*60+m;}
 function fmtData(d){if(!d) return '';const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}
+function mascaraCnpjCpf(el){
+  let v=el.value.replace(/\D/g,'');
+  if(v.length<=11){
+    // CPF: 000.000.000-00
+    v=v.replace(/(\d{3})(\d)/,'$1.$2');
+    v=v.replace(/(\d{3})(\d)/,'$1.$2');
+    v=v.replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  } else {
+    // CNPJ: 00.000.000/0001-00
+    v=v.substring(0,14);
+    v=v.replace(/(\d{2})(\d)/,'$1.$2');
+    v=v.replace(/(\d{3})(\d)/,'$1.$2');
+    v=v.replace(/(\d{3})(\d)/,'$1/$2');
+    v=v.replace(/(\d{4})(\d{1,2})$/,'$1-$2');
+  }
+  el.value=v;
+}
 function fmtHE(h){if(!h||h<=0) return '—';const hInt=Math.floor(h);const min=Math.round((h-hInt)*60);if(min===0) return `${hInt}h`;return `${hInt}h ${min}min`;}
 
 function atualizarBadgeHEMes(){
