@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v5.2</title>
+  <title>SOS Energia — OS Digital v5.3</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet"/>
@@ -332,25 +332,26 @@ function doLoginFirebase(userVal, passVal) {
 
 // Funções de escrita Firebase
 function fbSet(path, data) {
-  return db.ref(path).set(data).catch(e => console.warn('Firebase write error:', e));
+  const p = db.ref(path).set(data).catch(e => console.warn('Firebase write error:', e));
+  return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000))]);
 }
 function fbSaveOrdens() {
   const obj = {};
   ordens.forEach(o => { obj[o.id] = o; });
-  fbSet('ordens', obj);
+  return fbSet('ordens', obj);
 }
 function fbSaveRegistros() {
   const obj = {};
   registros.forEach(r => { obj[r.id] = r; });
-  fbSet('registros', obj);
+  return fbSet('registros', obj);
 }
 function fbSaveUsuarios() {
   const obj = {};
   usuarios.forEach(u => { obj[u.id] = u; });
-  fbSet('usuarios', obj);
+  return fbSet('usuarios', obj);
 }
 function fbSaveConfig() {
-  fbSet('config', config);
+  return fbSet('config', config);
 }
 
 
@@ -865,12 +866,14 @@ function showLinkPopup(os,link){
 
 function verOS(id){
   const os=ordens.find(o=>o.id===id);if(!os) return;
-  const regs=registros.filter(r=>r.osId===id);
   document.getElementById('os-list').closest('.card').style.display='none';
   const det=document.getElementById('os-detalhe');
   det.style.display='block';
-  const link=window.location.href.split('?')[0]+'?os='+os.id;
-  det.innerHTML=`
+  det.innerHTML='<div style="text-align:center;padding:40px;color:var(--dim)">Carregando...</div>';
+  function _renderVerOS_inner(){
+    const regs=registros.filter(r=>r.osId===id);
+    const link=window.location.href.split('?')[0]+'?os='+os.id;
+    det.innerHTML=`
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <button class="btn btn-ghost btn-sm" style="width:auto" onclick="fecharDet()">← Voltar</button>
@@ -911,6 +914,20 @@ function verOS(id){
   ${regs.length?`<button class="btn btn-primary" style="margin-top:8px;background:#1a1a2e;border:1px solid var(--red)" onclick="gerarPDFOS('${os.id}')">📄 Gerar PDF da OS</button>`:''}
   <button class="btn btn-ghost" style="margin-top:8px;color:var(--red-light);border-color:rgba(204,0,0,.3)" onclick="excluirOS('${os.id}')">🗑 Excluir OS</button>
   <button class="btn btn-ghost" style="margin-top:8px" onclick="fecharDet()">← Voltar</button>`;
+  } // fim _renderVerOS_inner
+  if(db){
+    db.ref('registros').once('value').then(snap=>{
+      if(snap.val()){
+        const fbRegs=Object.values(snap.val());
+        fbRegs.forEach(r=>{if(!registros.find(x=>x.id===r.id))registros.push(r);});
+        registros=registros.map(r=>{const fb=fbRegs.find(x=>x.id===r.id);return fb||r;});
+        DB.set('sos_registros',registros);
+      }
+      _renderVerOS_inner();
+    }).catch(()=>_renderVerOS_inner());
+  } else {
+    _renderVerOS_inner();
+  }
 }
 function fecharDet(){document.getElementById('os-detalhe').style.display='none';document.getElementById('os-list').closest('.card').style.display='block';}
 function fecharOSConf(id){if(confirm('Confirmar fechamento desta OS?')){const os=ordens.find(o=>o.id===id);if(os){os.status='fechada';saveAll();verOS(id);}}}
@@ -1252,9 +1269,11 @@ function finalizarReg(){
   saveAll().then(()=>{
     regEnviado=true;
     _finalizarRegUI();
-  }).catch(e=>{
-    if(btnFin){btnFin.disabled=false;btnFin.textContent='✓ Enviar Assinaturas e Finalizar OS';}
-    showToast('Erro ao salvar: '+(e&&e.message?e.message:'falha'),'err');
+  }).catch(()=>{
+    // Firebase falhou ou timeout — dados já estão no localStorage, finalizar mesmo assim
+    regEnviado=true;
+    _finalizarRegUI();
+    showToast('Salvo localmente (Firebase indisponível)','err');
   });
   return; // execução continua em _finalizarRegUI após Promise
 }
