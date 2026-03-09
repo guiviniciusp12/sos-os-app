@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v5.9</title>
+  <title>SOS Energia — OS Digital v6.0</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet"/>
@@ -29,13 +29,20 @@
     .login-box h2{font-size:18px;margin-bottom:20px;color:var(--text)}
     /* ── NAV ── */
     .nav{background:var(--dark);border-bottom:2px solid var(--red);display:flex;align-items:center;justify-content:space-between;padding:0 12px;height:54px;position:sticky;top:0;z-index:100}
-    .nav-left{display:flex;align-items:center;gap:10px}
+    .nav-left{display:flex;align-items:center;gap:10px;flex-shrink:0}
     .nav-logo-sm{width:38px;height:38px}
     .nav-user{font-size:11px;color:var(--dim);background:var(--card2);padding:3px 8px;border-radius:20px}
     .nav-tabs{display:flex;gap:2px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
     .nav-tabs::-webkit-scrollbar{display:none}
     .nav-tab{background:none;border:none;color:var(--dim);font-size:11px;padding:7px 9px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:.2s}
     .nav-tab.active{background:var(--red);color:#fff;font-weight:700}
+    @media(max-width:600px){
+      .nav{flex-wrap:wrap;height:auto;padding:6px 10px 0;gap:0}
+      .nav-left{flex:1;min-width:0;padding-bottom:6px}
+      .nav-left .nav-user{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle}
+      .nav>button{padding:4px 8px;font-size:10px;align-self:flex-start;margin-bottom:6px}
+      .nav-tabs{width:100%;border-top:1px solid var(--border);padding:4px 0 6px;margin-left:-10px;margin-right:-10px;padding-left:10px;padding-right:10px;box-sizing:content-box}
+    }
     /* ── LAYOUT ── */
     .page{display:none;padding:14px;max-width:720px;margin:0 auto}
     .page.active{display:block}
