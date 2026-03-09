@@ -1731,14 +1731,6 @@ function loadConfig(){
     <span class="save-feedback" id="fb-cfg-oai"></span>
   </div>
   <div class="card">
-    <div class="card-title">Integração Google Sheets (webhook)</div>
-    <div class="field"><label>URL Google Apps Script</label>
-      <input type="url" id="cfg-wh" value="${config.webhook||''}" placeholder="https://script.google.com/..."/>
-    </div>
-    <button class="btn btn-primary btn-sm" id="btn-cfg-wh" style="width:auto;margin-top:4px" onclick="svcfg('btn-cfg-wh','fb-cfg-wh')">Salvar</button>
-    <span class="save-feedback" id="fb-cfg-wh"></span>
-  </div>
-  <div class="card">
     <div class="card-title">Usuários</div>
     <div id="lista-users" style="margin-bottom:12px"></div>
     <div class="grid2" style="margin-bottom:8px">
@@ -1780,11 +1772,7 @@ function loadConfig(){
 }
 
 function svcfg(btnId, feedbackId){
-  config.jornadaIni=document.getElementById('cfg-ji')?.value||config.jornadaIni;
-  config.jornadaFim=document.getElementById('cfg-jf')?.value||config.jornadaFim;
-  config.intervalo=parseFloat(document.getElementById('cfg-int')?.value)||1;
   config.heValor=parseFloat(document.getElementById('cfg-hevalor')?.value)||15;
-  config.webhook=document.getElementById('cfg-wh')?.value||'';
   config.openaiKey=document.getElementById('cfg-oai')?.value||'';
   config.wppNumero=document.getElementById('cfg-wpp')?.value||'';
   const btn=btnId?document.getElementById(btnId):null;
