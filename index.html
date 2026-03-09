@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v6.1</title>
+  <title>SOS Energia — OS Digital v6.2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet"/>
@@ -209,6 +209,7 @@
 <div id="page-agente" class="page"></div>
 <div id="page-config" class="page"></div>
 <div id="page-historico" class="page"></div>
+<div id="page-he" class="page"></div>
 
 <script>
 // ════════════════════════════════════════
@@ -432,6 +433,7 @@ function buildNav(){atualizarBadgeHEMes();
   pages.push({id:'operador',label:'Operador'});
   if(isAdmin) pages.push({id:'relatorio',label:'Relatório'});
   pages.push({id:'agente',label:'Assistente'});
+  if(sessaoAtual.perfil==='admin') pages.push({id:'he',label:'HE Time'});
   if(sessaoAtual.perfil==='admin') pages.push({id:'config',label:'Configurações'});
   if(sessaoAtual.perfil==='operador') pages.push({id:'historico',label:'Histórico'});
   pages.forEach((p,i)=>{
@@ -464,6 +466,7 @@ function switchPage(id,btn){
   if(id==='agente') loadAgente();
   if(id==='config') loadConfig();
   if(id==='historico') loadHistorico();
+  if(id==='he') loadHE();
 }
 
 // ════════════════════════════════════════
@@ -1625,6 +1628,73 @@ async function enviarChat(){
 
 function formatMd(t){return escHtml(t).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br/>');}
 function escHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ════════════════════════════════════════
+// HE TIME — HORAS EXTRA
+// ════════════════════════════════════════
+function loadHE(){
+  const el=document.getElementById('page-he');
+  const mesAtual=new Date().toISOString().slice(0,7);
+  el.innerHTML=`
+  <div class="card">
+    <div class="card-title">HE Time — Horas Extra por Funcionário</div>
+    <div class="grid2" style="align-items:flex-end">
+      <div class="field"><label>Mês/Ano</label><input type="month" id="he-mes" value="${mesAtual}"/></div>
+      <button class="btn btn-primary btn-sm" style="width:auto;margin-bottom:4px" onclick="gerarHE()">Calcular</button>
+    </div>
+  </div>
+  <div id="he-out"></div>`;
+  gerarHE();
+}
+
+function gerarHE(){
+  const mes=document.getElementById('he-mes')?.value;
+  if(!mes) return;
+  const out=document.getElementById('he-out');
+  const operadores=usuarios.filter(u=>u.perfil==='operador');
+  if(!operadores.length){out.innerHTML='<div class="card" style="color:var(--text-secondary);text-align:center;padding:24px">Nenhum operador cadastrado.</div>';return;}
+
+  const regsDoMes=registros.filter(r=>r.data&&r.data.startsWith(mes));
+
+  let totalHEGeral=0,totalValorGeral=0;
+  const cards=operadores.map(u=>{
+    const regsOp=regsDoMes.filter(r=>r.operadorId===u.id);
+    const totalHE=regsOp.reduce((a,r)=>a+(r.heOperador||0),0);
+    const valorHora=(u.heValor&&u.heValor>0)?u.heValor:config.heValor;
+    const totalValor=regsOp.reduce((a,r)=>a+(r.valorHEOperador!=null?r.valorHEOperador:(r.heOperador||0)*valorHora),0);
+    totalHEGeral+=totalHE;
+    totalValorGeral+=totalValor;
+    const heStr=fmtHE(totalHE);
+    const temHE=totalHE>0;
+    return `
+    <div class="card" style="margin-bottom:0;border-left:3px solid ${temHE?'var(--yellow)':'var(--border)'}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:600;font-size:15px">${u.nome}</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${regsOp.length} registro${regsOp.length!==1?'s':''} no mês · R$${valorHora.toFixed(2)}/h HE</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:700;color:${temHE?'var(--yellow)':'var(--text-secondary)'}">${temHE?heStr:'—'}</div>
+          ${temHE?`<div style="font-size:13px;color:var(--green);font-weight:600">R$ ${totalValor.toFixed(2)}</div>`:'<div style="font-size:12px;color:var(--text-secondary)">sem HE</div>'}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const [ano,mesN]=mes.split('-');
+  const nomeMes=new Date(parseInt(ano),parseInt(mesN)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+
+  out.innerHTML=`
+  <div class="metric-grid" style="margin-bottom:12px">
+    <div class="metric-card"><div class="metric-label">Operadores</div><div class="metric-value">${operadores.length}</div></div>
+    <div class="metric-card"><div class="metric-label">Total HE</div><div class="metric-value" style="color:var(--yellow)">${fmtHE(totalHEGeral)}</div></div>
+    <div class="metric-card"><div class="metric-label">Total a Pagar</div><div class="metric-value" style="color:var(--green)">R$ ${totalValorGeral.toFixed(2)}</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Detalhamento — ${nomeMes}</div>
+    <div style="display:flex;flex-direction:column;gap:10px">${cards}</div>
+  </div>`;
+}
 
 // ════════════════════════════════════════
 // CONFIGURAÇÕES
