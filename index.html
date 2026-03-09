@@ -1143,9 +1143,6 @@ function buildOpForm(os){
     <button class="btn btn-wpp" onclick="enviarWPP()" style="margin-bottom:10px">
       📲 Enviar confirmação por WhatsApp
     </button>
-    <button class="btn btn-primary" style="margin-bottom:10px;background:#1a1a2e;border:1px solid var(--red)" onclick="gerarPDFRegistro()">
-      📄 Gerar PDF desta OS
-    </button>
     <button class="btn btn-ghost" onclick="loadOperador()">Nova OS</button>
   </div>`;
   // init assinatura depois do DOM estar pronto
@@ -1250,7 +1247,7 @@ function finalizarReg(){
   const sigCliente=sigPads['sigCanvas']?.hasData?document.getElementById('sigCanvas').toDataURL('image/png'):null;
   const sigOperador=sigPads['sigCanvasOp']?.hasData?document.getElementById('sigCanvasOp').toDataURL('image/png'):null;
   lastReg={
-    id:'reg_'+Date.now(),osId:opOS.id,osNum:opOS.num,cliente:opOS.cliente,
+    id:'reg_'+Date.now(),osId:opOS.id,osNum:opOS.num,cliente:opOS.cliente,evento:opOS.evento||'',
     operadorId:sessaoAtual.id,operadorNome:sessaoAtual.nome,
     data,partida:part,parada:par,
     horIni:document.getElementById('op-hi')?.value||'',
@@ -1675,6 +1672,7 @@ function gerarHE(){
         <div style="min-width:0;font-size:12px">
           <span style="color:var(--dim)">${fmtData(r.data)}</span>
           ${r.osNum?`<span style="font-weight:600;margin-left:8px">OS ${r.osNum}</span>`:''}
+          ${r.evento?`<span style="margin-left:8px;color:var(--text)">${r.evento}</span>`:''}
           <span style="color:var(--yellow);margin-left:8px">${heHorario}</span>
         </div>
         <div style="display:flex;gap:10px;flex-shrink:0;align-items:center">
