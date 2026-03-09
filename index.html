@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v5.5</title>
+  <title>SOS Energia — OS Digital v5.6</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet"/>
@@ -516,7 +516,7 @@ function showFormOS(osId){
     <div class="grid3">
       <div class="field"><label>Cidade</label><input id="f-cid" value="${osEdit?osEdit.cidade||'':''}"/></div>
       <div class="field"><label>UF</label><input id="f-uf" value="${osEdit?osEdit.uf||'':''}" maxlength="2" style="text-transform:uppercase"/></div>
-      <div class="field"><label>CEP</label><input id="f-cep" value="${osEdit?osEdit.cep||'':''}"/></div>
+      <div class="field"><label>CEP</label><input id="f-cep" value="${osEdit?osEdit.cep||'':''}" placeholder="00000-000" maxlength="9" oninput="mascaraCep(this)" onblur="buscarCep(this.value)"/></div>
     </div>
     <div class="grid2">
       <div class="field"><label>Contato</label><input id="f-contato" value="${osEdit?osEdit.contato||'':''}"/></div>
@@ -2106,6 +2106,26 @@ function loadHistorico(){
 // ════════════════════════════════════════
 function toMin(t){if(!t) return 0;const[h,m]=t.split(':').map(Number);return h*60+m;}
 function fmtData(d){if(!d) return '';const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}
+function mascaraCep(el){
+  let v=el.value.replace(/\D/g,'').substring(0,8);
+  if(v.length>5) v=v.replace(/(\d{5})(\d{1,3})/,'$1-$2');
+  el.value=v;
+}
+async function buscarCep(cep){
+  const digits=cep.replace(/\D/g,'');
+  if(digits.length!==8) return;
+  try{
+    const r=await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+    const d=await r.json();
+    if(d.erro) return;
+    const end=document.getElementById('f-end');
+    const cid=document.getElementById('f-cid');
+    const uf=document.getElementById('f-uf');
+    if(end&&!end.value) end.value=(d.logradouro||'')+(d.bairro?', '+d.bairro:'');
+    if(cid&&!cid.value) cid.value=d.localidade||'';
+    if(uf&&!uf.value) uf.value=d.uf||'';
+  }catch(e){}
+}
 function mascaraCnpjCpf(el){
   let v=el.value.replace(/\D/g,'');
   if(v.length<=11){
