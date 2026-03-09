@@ -387,7 +387,7 @@ let usuarios   = DB.get('sos_usuarios',[
 ]);
 let config     = DB.get('sos_config',{
   jornadaIni:'07:00',jornadaFim:'17:00',intervalo:1,
-  heValor:15,webhook:'',openaiKey:'',wppNumero:'5561999852409'
+  heValor:18,webhook:'',openaiKey:'',wppNumero:'5561999852409'
 });
 let sessaoAtual = null; // usuário logado
 
@@ -1787,7 +1787,7 @@ function loadConfig(){
 }
 
 function svcfg(btnId, feedbackId){
-  config.heValor=parseFloat(document.getElementById('cfg-hevalor')?.value)||15;
+  config.heValor=parseFloat(document.getElementById('cfg-hevalor')?.value)||18;
   config.openaiKey=document.getElementById('cfg-oai')?.value||'';
   config.wppNumero=document.getElementById('cfg-wpp')?.value||'';
   const btn=btnId?document.getElementById(btnId):null;
