@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v6.5</title>
+  <title>SOS Energia — OS Digital v6.6</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
@@ -895,7 +895,8 @@ function verOS(id){
   det.style.display='block';
   det.innerHTML='<div style="text-align:center;padding:40px;color:var(--dim)">Carregando...</div>';
   function _renderVerOS_inner(){
-    const regs=registros.filter(r=>r.osId===id);
+    // Admin só vê registros enviados (status==='enviado' ou sem status = retrocompatibilidade)
+    const regs=registros.filter(r=>r.osId===id&&(r.status==='enviado'||!r.status));
     const link=window.location.href.split('?')[0]+'?os='+os.id;
     det.innerHTML=`
   <div class="card">
@@ -1013,7 +1014,23 @@ function loadOperador(){
   }).join('');
 }
 
-function abrirOpOS(id){opOS=ordens.find(o=>o.id===id);if(opOS){regEnviado=false;buildOpForm(opOS);}}
+function abrirOpOS(id){
+  opOS=ordens.find(o=>o.id===id);
+  if(!opOS) return;
+  regEnviado=false;
+  buildOpForm(opOS);
+  // Se já tem rascunhos, vai direto para a tela de resumo
+  const temRascunho=registros.some(r=>r.osId===id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho');
+  if(temRascunho){
+    setTimeout(()=>{
+      for(let i=0;i<4;i++){const el=document.getElementById('op'+i);if(el)el.style.display='none';}
+      lastReg=registros.filter(r=>r.osId===id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho').slice(-1)[0]||null;
+      _renderResumoOS();
+      document.getElementById('op-ok').style.display='block';
+      window.scrollTo({top:0,behavior:'smooth'});
+    },50);
+  }
+}
 
 function buildOpForm(os){
   opOS=os;
@@ -1169,19 +1186,22 @@ function buildOpForm(os){
   <!-- Confirmação -->
   <div id="op-ok" style="display:none;">
     <!-- Banner de sucesso destacado -->
-    <div style="background:var(--green);border-radius:14px;padding:28px 20px;text-align:center;margin-bottom:16px">
-      <div style="font-size:52px;margin-bottom:10px">✅</div>
-      <h2 style="color:#fff;font-size:20px;margin-bottom:6px">Enviado com Sucesso!</h2>
-      <p style="color:rgba(255,255,255,.85);font-size:14px">Registro enviado ao administrativo.</p>
+    <div style="background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:20px;text-align:center;margin-bottom:16px">
+      <div style="font-size:40px;margin-bottom:8px">💾</div>
+      <h2 style="color:var(--yellow);font-size:18px;margin-bottom:4px">Dia salvo!</h2>
+      <p style="color:var(--dim);font-size:13px">Registre todos os dias e depois envie para o administrativo.</p>
     </div>
     <div id="op-ok-resumo" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--dim)"></div>
     <button class="btn btn-primary" onclick="novoRegistroDia()" style="margin-bottom:10px;background:rgba(234,179,8,.15);border:1px solid rgba(234,179,8,.4);color:var(--yellow)">
       📅 Registrar outro dia desta OS
     </button>
-    <button class="btn btn-wpp" onclick="enviarWPP()" style="margin-bottom:10px">
+    <button id="btn-enviar-admin" class="btn btn-green" onclick="enviarParaAdmin()" style="margin-bottom:10px">
+      ✅ Enviar para o administrativo
+    </button>
+    <button id="btn-wpp-final" class="btn btn-wpp" onclick="enviarWPP()" style="margin-bottom:10px;display:none">
       📲 Enviar confirmação por WhatsApp
     </button>
-    <button class="btn btn-ghost" onclick="loadOperador()">Nova OS</button>
+    <button class="btn btn-ghost" onclick="loadOperador()">← Voltar para OS</button>
   </div>`;
   // init assinatura depois do DOM estar pronto
   setTimeout(initSig,100);
@@ -1375,57 +1395,79 @@ function finalizarReg(){
     assinatura:sigCliente,assinaturaOp:sigOperador,
     geradoresReg,
     heOperador:heO,valorHEOperador:valHEop,heMaquina:heM,totalHoras:totH,
+    status:'rascunho',
     criadoEm:new Date().toISOString()
   };
   registros.push(lastReg);
-  // Marca a OS como registrada por este operador (campo direto na OS para filtro confiável)
-  const osIdx=ordens.findIndex(o=>o.id===opOS.id);
-  if(osIdx!==-1){
-    if(!ordens[osIdx].registradoPor) ordens[osIdx].registradoPor=[];
-    if(!ordens[osIdx].registradoPor.includes(sessaoAtual.id)){
-      ordens[osIdx].registradoPor.push(sessaoAtual.id);
-    }
-  }
   const btnFin=document.getElementById('btn-finalizar');
-  if(btnFin){btnFin.disabled=true;btnFin.textContent='Enviando...';}
+  if(btnFin){btnFin.disabled=true;btnFin.textContent='Salvando...';}
   saveAll().then(()=>{
-    regEnviado=true;
     _finalizarRegUI();
   }).catch(()=>{
-    // Firebase falhou ou timeout — dados já estão no localStorage, finalizar mesmo assim
-    regEnviado=true;
     _finalizarRegUI();
     showToast('Salvo localmente (Firebase indisponível)','err');
   });
-  return; // execução continua em _finalizarRegUI após Promise
+  return;
 }
 function _finalizarRegUI(){
-  if(config.webhook){fetch(config.webhook,{method:'POST',body:JSON.stringify({...lastReg,assinatura:lastReg.assinatura?'(capturada)':'não',assinaturaOp:lastReg.assinaturaOp?'(capturada)':'não'}),headers:{'Content-Type':'application/json'}}).catch(()=>{});}
   for(let i=0;i<4;i++){const el=document.getElementById('op'+i);if(el)el.style.display='none';}
-  const heO=lastReg.heOperador||0;
-  const heM=lastReg.heMaquina||0;
-  const valHEop=lastReg.valorHEOperador||0;
-  const resumoEl=document.getElementById('op-ok-resumo');
-  if(resumoEl){
-    resumoEl.innerHTML=`
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <div><span style="color:var(--dim)">OS</span><br/><strong style="color:var(--text)">${lastReg.osNum}</strong></div>
-        <div><span style="color:var(--dim)">Cliente</span><br/><strong style="color:var(--text)">${lastReg.cliente}</strong></div>
-        <div><span style="color:var(--dim)">Data</span><br/><strong style="color:var(--text)">${fmtData(lastReg.data)}</strong></div>
-        <div><span style="color:var(--dim)">Liga → Desliga</span><br/><strong style="color:var(--text)">${lastReg.partida} → ${lastReg.parada}</strong></div>
-        <div><span style="color:var(--dim)">Total trabalhado</span><br/><strong style="color:var(--text)">${lastReg.totalHoras.toFixed(1)}h</strong></div>
-        ${heM>0?`<div style="grid-column:1/-1"><span style="color:var(--dim)">⚠️ HE Máquina</span><br/><strong style="color:var(--yellow)">${heM.toFixed(1)}h fora do contrato</strong></div>`:''}
-        ${lastReg.abastecido==='sim'?`<div style="grid-column:1/-1"><span style="color:var(--dim)">Abastecimento</span><br/><strong style="color:var(--text)">${lastReg.litros} litros</strong></div>`:''}
-      </div>`;
-  }
-  showToast('OS enviada com sucesso!');
+  _renderResumoOS();
+  showToast('Dia salvo!');
   document.getElementById('op-ok').style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
-  // Após 4s redireciona para aba Histórico automaticamente
-  setTimeout(()=>{
-    const btnHist=Array.from(document.querySelectorAll('.nav-tab')).find(b=>b.textContent.trim()==='Histórico');
-    if(btnHist) switchPage('historico',btnHist);
-  },4000);
+}
+
+function _renderResumoOS(){
+  if(!opOS) return;
+  const rascunhos=registros.filter(r=>r.osId===opOS.id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho');
+  const resumoEl=document.getElementById('op-ok-resumo');
+  if(!resumoEl) return;
+  const diasHTML=rascunhos.sort((a,b)=>a.data.localeCompare(b.data)).map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <strong>${fmtData(r.data)}</strong>
+        ${r.geradoresReg&&r.geradoresReg.length?
+          r.geradoresReg.filter(g=>!g.standby||g.rodou).map(g=>`<span style="font-size:11px;color:var(--dim);margin-left:6px">${g.potencia||'G'} ${g.part}→${g.par}</span>`).join('')
+          :`<span style="font-size:11px;color:var(--dim);margin-left:6px">${r.partida}→${r.parada}</span>`}
+        ${r.heOperador>0?`<span style="font-size:11px;color:var(--yellow);margin-left:6px">HE ${fmtHE(r.heOperador)}</span>`:''}
+      </div>
+      <button onclick="excluirRascunho('${r.id}')" style="background:none;border:none;color:var(--red-light);font-size:16px;cursor:pointer;padding:0 4px" title="Remover este dia">×</button>
+    </div>`).join('');
+  resumoEl.innerHTML=`
+    <div style="font-weight:700;font-size:13px;margin-bottom:8px">OS ${opOS.num} — ${opOS.cliente}${opOS.evento?' · '+opOS.evento:''}</div>
+    <div style="font-size:12px;color:var(--dim);margin-bottom:6px">${rascunhos.length} dia${rascunhos.length!==1?'s':''} registrado${rascunhos.length!==1?'s':''} (aguardando envio)</div>
+    ${diasHTML||'<div style="color:var(--dim);font-size:12px">Nenhum dia salvo ainda.</div>'}`;
+}
+
+function excluirRascunho(regId){
+  if(!confirm('Remover este dia do registro?')) return;
+  registros=registros.filter(r=>r.id!==regId);
+  saveAll().then(()=>{_renderResumoOS();showToast('Dia removido.');});
+}
+
+function enviarParaAdmin(){
+  const rascunhos=registros.filter(r=>r.osId===opOS?.id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho');
+  if(!rascunhos.length){alert('Nenhum dia registrado para enviar.');return;}
+  if(!confirm(`Enviar ${rascunhos.length} dia${rascunhos.length!==1?'s':''} para o administrativo?\n\nApós o envio você não poderá alterar os registros.`)) return;
+  rascunhos.forEach(r=>{r.status='enviado';});
+  const btnEnv=document.getElementById('btn-enviar-admin');
+  if(btnEnv){btnEnv.disabled=true;btnEnv.textContent='Enviando...';}
+  saveAll().then(()=>{
+    if(config.webhook){
+      rascunhos.forEach(r=>fetch(config.webhook,{method:'POST',body:JSON.stringify({...r,assinatura:r.assinatura?'(capturada)':'não',assinaturaOp:r.assinaturaOp?'(capturada)':'não'}),headers:{'Content-Type':'application/json'}}).catch(()=>{}));
+    }
+    showToast('Enviado para o administrativo!');
+    _renderResumoOS();
+    // Mostra botão de WPP e oculta botão de envio
+    const btnEnvFinal=document.getElementById('btn-enviar-admin');
+    if(btnEnvFinal) btnEnvFinal.style.display='none';
+    const wppBtn=document.getElementById('btn-wpp-final');
+    if(wppBtn) wppBtn.style.display='block';
+    setTimeout(()=>{
+      const btnHist=Array.from(document.querySelectorAll('.nav-tab')).find(b=>b.textContent.trim()==='Histórico');
+      if(btnHist) switchPage('historico',btnHist);
+    },3000);
+  }).catch(()=>showToast('Erro ao enviar. Tente novamente.','err'));
 }
 
 function enviarWPP(){
@@ -2316,6 +2358,7 @@ function loadHistorico(){
     if(sessaoAtual.perfil==='admin'||sessaoAtual.perfil==='comercial') return true;
     return (o.operadores&&o.operadores.some(op=>op.userId===sessaoAtual.id))||o.operadorId===sessaoAtual.id;
   });
+  // Histórico mostra enviados + rascunhos (para o próprio operador ver o progresso)
   const meusRegs=registros.filter(r=>r.operadorId===sessaoAtual.id||r.operadorNome===sessaoAtual.nome);
   if(!minhasOS.length&&!meusRegs.length){
     el.innerHTML='<div class="card"><p style="color:var(--dim);font-size:14px;padding:8px 0">Nenhuma OS no seu histórico ainda.</p></div>';
@@ -2327,6 +2370,8 @@ function loadHistorico(){
     <p style="font-size:12px;color:var(--dim);margin-bottom:12px">Visualização somente leitura. Para alterações, contate o administrador.</p>
     ${minhasOS.slice().reverse().map(os=>{
       const regsOS=meusRegs.filter(r=>r.osId===os.id);
+      const rascunhosOS=regsOS.filter(r=>r.status==='rascunho');
+      const enviadosOS=regsOS.filter(r=>r.status==='enviado'||!r.status);
       // Soma total de HE: usa heOperador gravado (calculado pelo período informado)
       const totalHEh=regsOS.reduce((acc,r)=>{
         let heO=0;
@@ -2345,7 +2390,8 @@ function loadHistorico(){
             ${regsOS.length&&totalHEh>0
               ? `<span class="badge badge-yellow">⚠️ ${fmtHE(totalHEh)} HE</span>`
               : regsOS.length?`<span class="badge badge-green">✓ Sem HE</span>`:''}
-            <span class="badge ${os.status==='fechada'?'badge-green':regsOS.length?'badge-green':'badge-yellow'}">${os.status==='fechada'?'Fechada':regsOS.length?'✓ Enviada':'Aguardando'}</span>
+            ${rascunhosOS.length?`<span class="badge badge-yellow">📝 ${rascunhosOS.length} rascunho${rascunhosOS.length>1?'s':''}</span>`:''}
+            <span class="badge ${os.status==='fechada'?'badge-green':enviadosOS.length?'badge-green':'badge-yellow'}">${os.status==='fechada'?'Fechada':enviadosOS.length?'✓ Enviada':'Aguardando'}</span>
           </div>
         </div>
         <div style="font-size:14px;color:var(--dim);margin-bottom:3px">${os.cliente}${os.evento?' · '+os.evento:''}</div>
