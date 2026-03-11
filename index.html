@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <meta name="apple-mobile-web-app-title" content="SOS OS"/>
-  <title>SOS Energia — OS Digital v6.9</title>
+  <title>SOS Energia — OS Digital v7.0</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
@@ -435,7 +435,7 @@ function buildNav(){atualizarBadgeHEMes();
   const pages=[];
   if(isAdmin) pages.push({id:'admin',label:'OS'});
   if(!isAdmin) pages.push({id:'operador',label:'Operador'});
-  if(isAdmin) pages.push({id:'relatorio',label:'Relatório'});
+  if(isAdmin) pages.push({id:'relatorio',label:'Status'});
   pages.push({id:'agente',label:'Assistente'});
   if(sessaoAtual.perfil==='admin') pages.push({id:'he',label:'HE Time'});
   if(sessaoAtual.perfil==='admin') pages.push({id:'config',label:'Configurações'});
@@ -1554,74 +1554,86 @@ function enviarWPP(){
 }
 
 // ════════════════════════════════════════
-// RELATÓRIO
+// STATUS — DASHBOARD
 // ════════════════════════════════════════
 function loadRelatorio(){
   const el=document.getElementById('page-relatorio');
-  const opOpts=usuarios.filter(u=>u.perfil==='operador').map(u=>`<option value="${u.id}">${u.nome}</option>`).join('');
+  const hoje=new Date().toISOString().split('T')[0];
+  const mesAtual=hoje.slice(0,7);
+
+  // Classifica cada OS
+  const emAndamento=ordens.filter(o=>o.status!=='fechada'&&o.dataSaida<=hoje&&o.dataRetorno>=hoje);
+  const futuras=ordens.filter(o=>o.status!=='fechada'&&o.dataSaida>hoje);
+  const doMes=ordens.filter(o=>{
+    const ini=o.dataSaida||'';
+    const fim=o.dataRetorno||o.dataSaida||'';
+    return ini.startsWith(mesAtual)||fim.startsWith(mesAtual)||(ini<=mesAtual+'-31'&&fim>=mesAtual+'-01');
+  });
+  const encerradasMes=doMes.filter(o=>o.status==='fechada');
+
+  function cardOS(os,corBorda){
+    const regsOS=registros.filter(r=>r.osId===os.id&&(r.status==='enviado'||!r.status));
+    const diasRegistrados=regsOS.length;
+    const equips=renderEquipTexto(os);
+    const ops=(os.operadores||[]).map(op=>{const u=usuarios.find(u=>u.id===op.userId);return u?u.nome:'?';}).filter(Boolean);
+    return `
+    <div onclick="verOS('${os.id}')" style="border:1px solid ${corBorda};border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;background:var(--card);transition:opacity .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+        <div>
+          <span style="font-weight:700;font-size:14px">OS ${os.num}</span>
+          <span style="font-size:13px;color:var(--dim);margin-left:8px">${os.cliente}</span>
+        </div>
+        <span style="font-size:11px;color:var(--dim);white-space:nowrap;margin-left:8px">${os.dataSaida||''}→${os.dataRetorno||''}</span>
+      </div>
+      ${os.evento?`<div style="font-size:12px;color:var(--purple);margin-bottom:4px">🎪 ${os.evento}</div>`:''}
+      <div style="font-size:11px;color:var(--dim);margin-bottom:4px">${equips}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        ${ops.length?`<span style="font-size:11px;color:var(--dim)">👤 ${ops.join(', ')}</span>`:''}
+        ${diasRegistrados?`<span style="font-size:11px;color:var(--green)">✓ ${diasRegistrados} reg.</span>`:'<span style="font-size:11px;color:var(--dim)">Sem registros</span>'}
+      </div>
+    </div>`;
+  }
+
   el.innerHTML=`
-  <div class="card">
-    <div class="card-title">Filtro</div>
-    <div class="grid2">
-      <div class="field"><label>Mês/Ano</label><input type="month" id="rel-mes" value="${new Date().toISOString().slice(0,7)}"/></div>
-      <div class="field"><label>Operador</label><select id="rel-op"><option value="">Todos</option>${opOpts}</select></div>
+  <!-- KPIs do mês -->
+  <div class="metric-grid" style="margin-bottom:12px">
+    <div class="metric-card">
+      <div class="metric-label">Total no mês</div>
+      <div class="metric-value">${doMes.length}</div>
+      <div class="metric-sub">OS em ${mesAtual.replace('-','/')}</div>
     </div>
-    <button class="btn btn-primary btn-sm" style="width:auto" onclick="gerarRel()">Gerar</button>
+    <div class="metric-card">
+      <div class="metric-label">Em andamento</div>
+      <div class="metric-value" style="color:var(--green)">${emAndamento.length}</div>
+      <div class="metric-sub">acontecendo hoje</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Futuras</div>
+      <div class="metric-value" style="color:var(--purple)">${futuras.length}</div>
+      <div class="metric-sub">agendadas</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Encerradas</div>
+      <div class="metric-value" style="color:var(--dim)">${encerradasMes.length}</div>
+      <div class="metric-sub">no mês</div>
+    </div>
   </div>
-  <div id="rel-out" style="display:none"></div>`;
-}
 
-function gerarRel(){
-  const mes=document.getElementById('rel-mes').value;
-  const opF=document.getElementById('rel-op').value;
-  if(!mes){alert('Selecione o mês.');return;}
-  const regs=registros.filter(r=>r.data.startsWith(mes)&&(!opF||r.operadorId===opF));
-  const jorH=(toMin(config.jornadaFim)-toMin(config.jornadaIni))/60-config.intervalo;
-  const porOp={};
-  regs.forEach(r=>{
-    const k=r.operadorId||r.operadorNome||'—';
-    if(!porOp[k]) porOp[k]={nome:r.operadorNome||k,regs:[]};
-    porOp[k].regs.push(r);
-  });
-  let totH=0,totHE=0,totVal=0,totHEMaq=0;
-  const linhas=[];
-  Object.values(porOp).forEach(op=>{
-    const h=op.regs.reduce((a,r)=>a+(r.totalHoras||0),0);
-    const he=op.regs.reduce((a,r)=>a+(r.heOperador||0),0);
-    const _opUser=usuarios.find(u=>u.id===op.regs[0]?.operadorId);
-    const _opHV=(_opUser&&_opUser.heValor>0)?_opUser.heValor:config.heValor;
-    const val=op.regs.reduce((a,r)=>a+(r.heOperador||0)*_opHV,0);
-    totH+=h;totHE+=he;totVal+=val;
-    linhas.push(`<tr><td>${op.nome}</td><td>${(h-he).toFixed(1)}h</td><td style="color:var(--yellow)">${fmtHE(he)}</td><td style="color:var(--yellow)">R$ ${val.toFixed(2)}</td><td><strong>${h.toFixed(1)}h</strong></td></tr>`);
-  });
-  regs.forEach(r=>totHEMaq+=r.heMaquina||0);
-  const maqLinhas=regs.filter(r=>r.heMaquina>0).map(r=>`<tr><td>OS ${r.osNum}</td><td>${r.cliente}</td><td>${fmtData(r.data)}</td><td style="color:var(--yellow)">${r.heMaquina.toFixed(1)}h</td></tr>`).join('');
-  document.getElementById('rel-out').style.display='block';
-  document.getElementById('rel-out').innerHTML=`
-  <div class="metric-grid">
-    <div class="metric-card"><div class="metric-label">Registros</div><div class="metric-value">${regs.length}</div></div>
-    <div class="metric-card"><div class="metric-label">Total horas</div><div class="metric-value">${totH.toFixed(1)}h</div></div>
-    <div class="metric-card"><div class="metric-label">HE Operadores</div><div class="metric-value" style="color:var(--yellow)">${totHE.toFixed(1)}h</div><div class="metric-sub">R$ ${totVal.toFixed(2)}</div></div>
-    <div class="metric-card"><div class="metric-label">HE Máquina</div><div class="metric-value" style="color:var(--yellow)">${totHEMaq.toFixed(1)}h</div><div class="metric-sub">a faturar ao cliente</div></div>
-  </div>
-  <div class="card"><div class="card-title">Por Operador</div>
-    <table class="tbl"><thead><tr><th>Operador</th><th>Normal</th><th>HE</th><th>Valor HE</th><th>Total</th></tr></thead>
-    <tbody>${linhas.join('')||'<tr><td colspan="5" style="color:var(--dim);text-align:center">Sem registros</td></tr>'}</tbody></table>
-  </div>
-  <div class="card"><div class="card-title">HE Máquina (Faturáveis)</div>
-    <table class="tbl"><thead><tr><th>OS</th><th>Cliente</th><th>Data</th><th>HE</th></tr></thead>
-    <tbody>${maqLinhas||'<tr><td colspan="4" style="color:var(--dim);text-align:center">Nenhuma</td></tr>'}</tbody></table>
-  </div>
-  <button class="btn btn-secondary btn-sm" style="width:auto" onclick="expCSV()">📥 Exportar CSV</button>`;
-}
+  <!-- Em andamento -->
+  ${emAndamento.length?`
+  <div class="card" style="border-left:3px solid var(--green)">
+    <div class="card-title" style="color:var(--green)">🟢 Em andamento (${emAndamento.length})</div>
+    ${emAndamento.map(os=>cardOS(os,'var(--green)')).join('')}
+  </div>`:''}
 
-function expCSV(){
-  const mes=document.getElementById('rel-mes').value;
-  const regs2=registros.filter(r=>r.data.startsWith(mes));
-  const h=['Data','OS','Cliente','Operador','Liga','Desliga','Total h','HE Op','HE Máq','Hor Ini','Hor Fim','Obs'];
-  const rows=regs2.map(r=>[r.data,r.osNum,r.cliente,r.operadorNome,r.partida,r.parada,r.totalHoras?.toFixed(1),r.heOperador?.toFixed(1),r.heMaquina?.toFixed(1),r.horIni,r.horFim,r.obs]);
-  const csv=[h,...rows].map(r=>r.map(c=>`"${(c||'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download=`sos-os-${mes}.csv`;a.click();
+  <!-- Futuras -->
+  ${futuras.length?`
+  <div class="card" style="border-left:3px solid var(--purple)">
+    <div class="card-title" style="color:var(--purple)">🔵 Futuras (${futuras.length})</div>
+    ${futuras.sort((a,b)=>(a.dataSaida||'').localeCompare(b.dataSaida||'')).map(os=>cardOS(os,'rgba(139,92,246,.35)')).join('')}
+  </div>`:''}
+
+  ${!emAndamento.length&&!futuras.length?`<div class="card"><p style="color:var(--dim);font-size:13px;text-align:center;padding:12px 0">Nenhuma OS ativa ou futura no momento.</p></div>`:''}`;
 }
 
 // ════════════════════════════════════════
