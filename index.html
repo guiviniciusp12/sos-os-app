@@ -1203,21 +1203,47 @@ function buildOpForm(os){
     <button class="btn btn-primary" onclick="opStep(3)">Próximo: Assinatura →</button>
     <button class="btn btn-ghost" style="margin-top:8px" onclick="opStep(1)">← Voltar</button>
   </div>
-  <!-- Step 3: Assinaturas (só no último dia) -->
-  <div id="op3" style="display:none">
-    ${(()=>{
-      const rascunhosOS=registros.filter(r=>r.osId===os.id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho');
-      const dataHoje=document.getElementById('op-data')?.value||new Date().toISOString().split('T')[0];
-      // Último dia = data do retorno contratado (ou, se não tiver, fallback para ter rascunhos)
-      const ultimoDia=os.dataRetorno ? dataHoje>=os.dataRetorno : rascunhosOS.length>0;
-      if(!ultimoDia){
-        // Dias intermediários: sem assinatura, salva direto
-        return `
+  <!-- Step 3: Assinaturas — conteúdo gerado dinamicamente em opStep(3) via _renderStep3() -->
+  <div id="op3" style="display:none"></div>
+  <!-- Confirmação -->
+  <div id="op-ok" style="display:none;">
+    <!-- Banner de sucesso destacado -->
+    <div style="background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:20px;text-align:center;margin-bottom:16px">
+      <div style="font-size:40px;margin-bottom:8px">💾</div>
+      <h2 style="color:var(--yellow);font-size:18px;margin-bottom:4px">Dia salvo!</h2>
+      <p style="color:var(--dim);font-size:13px">Registre todos os dias e depois envie para o administrativo.</p>
+    </div>
+    <div id="op-ok-resumo" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--dim)"></div>
+    <button class="btn btn-primary" onclick="novoRegistroDia()" style="margin-bottom:10px;background:rgba(234,179,8,.15);border:1px solid rgba(234,179,8,.4);color:var(--yellow)">
+      📅 Registrar outro dia desta OS
+    </button>
+    <button id="btn-enviar-admin" class="btn btn-green" onclick="enviarParaAdmin()" style="margin-bottom:10px">
+      ✅ Enviar para o administrativo
+    </button>
+    <button id="btn-wpp-final" class="btn btn-wpp" onclick="enviarWPP()" style="margin-bottom:10px;display:none">
+      📲 Enviar confirmação por WhatsApp
+    </button>
+    <button class="btn btn-ghost" onclick="loadOperador()">← Voltar para OS</button>
+  </div>`;
+}
+
+function _renderStep3(){
+  if(!opOS) return;
+  const os=opOS;
+  const el=document.getElementById('op3');
+  if(!el) return;
+  // Lê a data que o operador digitou no Step 1 (já disponível agora)
+  const dataHoje=document.getElementById('op-data')?.value||new Date().toISOString().split('T')[0];
+  const rascunhosOS=registros.filter(r=>r.osId===os.id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho');
+  // Último dia = data >= dataRetorno contratado; fallback: tem rascunhos
+  const ultimoDia=os.dataRetorno ? dataHoje>=os.dataRetorno : rascunhosOS.length>0;
+  if(!ultimoDia){
+    el.innerHTML=`
     <div class="card">
       <div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.2);border-radius:10px;padding:14px;text-align:center">
         <div style="font-size:28px;margin-bottom:6px">📋</div>
         <div style="font-weight:700;color:var(--yellow);margin-bottom:4px">Dia intermediário</div>
-        <div style="font-size:12px;color:var(--dim)">A assinatura do cliente será coletada somente no último dia, com o resumo completo de todas as rodagens.</div>
+        <div style="font-size:12px;color:var(--dim)">A assinatura do cliente será coletada somente no último dia (${fmtData(os.dataRetorno||'')}), com o resumo completo de todas as rodagens.</div>
       </div>
       <canvas id="sigCanvas" style="display:none"></canvas>
       <canvas id="sigCanvasOp" style="display:none"></canvas>
@@ -1226,22 +1252,23 @@ function buildOpForm(os){
     </div>
     <button class="btn btn-green" id="btn-finalizar" onclick="finalizarReg()" style="margin-top:8px">💾 Salvar este dia</button>
     <button class="btn btn-ghost" style="margin-top:8px" onclick="opStep(2)">← Voltar</button>`;
-      }
-      // Último dia: mostra resumo de rodagens + assinatura
-      const todosRascunhos=[...rascunhosOS].sort((a,b)=>a.data.localeCompare(b.data));
-      const resumoRodagens=todosRascunhos.map(r=>{
-        const linhasG=r.geradoresReg&&r.geradoresReg.length
-          ? r.geradoresReg.map(g=>g.standby&&!g.rodou
-              ? `<div style="font-size:12px;color:var(--dim);margin-left:8px">⚡ ${g.potencia||'Gerador'}${g.patrimonio?' ('+g.patrimonio+')':''} — <em>Stand-by (não operou)</em></div>`
-              : `<div style="font-size:12px;color:var(--dim);margin-left:8px">⚡ ${g.potencia||'Gerador'}${g.patrimonio?' ('+g.patrimonio+')':''} — ${g.part} às ${g.par} (${g.totalHoras?g.totalHoras.toFixed(1)+'h':'—'})${g.heM>0?' <span style="color:var(--yellow)">+'+g.heM.toFixed(1)+'h HE</span>':''}</div>`
-            ).join('')
-          : `<div style="font-size:12px;color:var(--dim);margin-left:8px">Liga: ${r.partida} · Desliga: ${r.parada} · ${r.totalHoras?r.totalHoras.toFixed(1)+'h':'—'}</div>`;
-        return `<div style="padding:7px 0;border-bottom:1px solid var(--border)">
-          <div style="font-weight:700;font-size:13px;margin-bottom:4px">${fmtData(r.data)}</div>
-          ${linhasG}
-        </div>`;
-      }).join('');
-      return `
+    return;
+  }
+  // Último dia: resumo de rodagens + assinatura
+  const todosRascunhos=[...rascunhosOS].sort((a,b)=>a.data.localeCompare(b.data));
+  const resumoRodagens=todosRascunhos.map(r=>{
+    const linhasG=r.geradoresReg&&r.geradoresReg.length
+      ? r.geradoresReg.map(g=>g.standby&&!g.rodou
+          ? `<div style="font-size:12px;color:var(--dim);margin-left:8px">⚡ ${g.potencia||'Gerador'}${g.patrimonio?' ('+g.patrimonio+')':''} — <em>Stand-by (não operou)</em></div>`
+          : `<div style="font-size:12px;color:var(--dim);margin-left:8px">⚡ ${g.potencia||'Gerador'}${g.patrimonio?' ('+g.patrimonio+')':''} — ${g.part} às ${g.par} (${g.totalHoras?g.totalHoras.toFixed(1)+'h':'—'})${g.heM>0?' <span style="color:var(--yellow)">+'+g.heM.toFixed(1)+'h HE</span>':''}</div>`
+        ).join('')
+      : `<div style="font-size:12px;color:var(--dim);margin-left:8px">Liga: ${r.partida} · Desliga: ${r.parada} · ${r.totalHoras?r.totalHoras.toFixed(1)+'h':'—'}</div>`;
+    return `<div style="padding:7px 0;border-bottom:1px solid var(--border)">
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">${fmtData(r.data)}</div>
+      ${linhasG}
+    </div>`;
+  }).join('');
+  el.innerHTML=`
     <div class="card">
       <div class="card-title">Resumo de Operação</div>
       <p style="font-size:12px;color:var(--dim);margin-bottom:10px">Apresente ao cliente para conferência antes de assinar.</p>
@@ -1270,30 +1297,6 @@ function buildOpForm(os){
     </div>
     <button class="btn btn-green" id="btn-finalizar" onclick="finalizarReg()">✓ Salvar e Finalizar último dia</button>
     <button class="btn btn-ghost" style="margin-top:8px" onclick="opStep(2)">← Voltar</button>`;
-    })()}
-  </div>
-  <!-- Confirmação -->
-  <div id="op-ok" style="display:none;">
-    <!-- Banner de sucesso destacado -->
-    <div style="background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:20px;text-align:center;margin-bottom:16px">
-      <div style="font-size:40px;margin-bottom:8px">💾</div>
-      <h2 style="color:var(--yellow);font-size:18px;margin-bottom:4px">Dia salvo!</h2>
-      <p style="color:var(--dim);font-size:13px">Registre todos os dias e depois envie para o administrativo.</p>
-    </div>
-    <div id="op-ok-resumo" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;font-size:13px;color:var(--dim)"></div>
-    <button class="btn btn-primary" onclick="novoRegistroDia()" style="margin-bottom:10px;background:rgba(234,179,8,.15);border:1px solid rgba(234,179,8,.4);color:var(--yellow)">
-      📅 Registrar outro dia desta OS
-    </button>
-    <button id="btn-enviar-admin" class="btn btn-green" onclick="enviarParaAdmin()" style="margin-bottom:10px">
-      ✅ Enviar para o administrativo
-    </button>
-    <button id="btn-wpp-final" class="btn btn-wpp" onclick="enviarWPP()" style="margin-bottom:10px;display:none">
-      📲 Enviar confirmação por WhatsApp
-    </button>
-    <button class="btn btn-ghost" onclick="loadOperador()">← Voltar para OS</button>
-  </div>`;
-  // init assinatura depois do DOM estar pronto
-  setTimeout(initSig,100);
 }
 
 function opStep(n){
@@ -1302,7 +1305,10 @@ function opStep(n){
     const s=document.getElementById('st'+i);
     if(s) s.className='step '+(i<n?'done':i===n?'active':'');
   }
-  if(n===3) setTimeout(initSig,80);
+  if(n===3){
+    _renderStep3(); // gera o HTML com a data real do operador antes de inicializar assinatura
+    setTimeout(initSig,80);
+  }
 }
 
 function toggleStandbyRodou(gi){
