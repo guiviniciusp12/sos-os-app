@@ -1421,8 +1421,37 @@ function novoRegistroDia(){
   // Reconstrói o formulário para refletir o novo estado (ex: transporte muda de Ida para Volta)
   regEnviado=false;
   buildOpForm(opOS);
-  // Avança direto para Step 1
-  setTimeout(()=>{opStep(1);window.scrollTo({top:0,behavior:'smooth'});},50);
+  // Avança direto para Step 1 e, depois que o DOM estiver pronto,
+  // pré-preenche horímetro inicial de cada gerador com o horFim do rascunho mais recente
+  setTimeout(()=>{
+    opStep(1);
+    window.scrollTo({top:0,behavior:'smooth'});
+    // Busca o rascunho mais recente desta OS+operador
+    const rascunhos=registros
+      .filter(r=>r.osId===opOS.id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho')
+      .sort((a,b)=>b.data.localeCompare(a.data)); // mais recente primeiro
+    const ultimo=rascunhos[0];
+    if(!ultimo||!ultimo.geradoresReg) return;
+    // Mapeia eqId → horFim do último rascunho
+    const horFimPorEq={};
+    ultimo.geradoresReg.forEach(g=>{ if(g.eqId&&g.horFim) horFimPorEq[g.eqId]=g.horFim; });
+    // Preenche os inputs de horímetro inicial de cada gerador no formulário
+    const geradores=(opOS.equipamentos||[]).filter(e=>e.tipo==='gerador');
+    geradores.forEach((g,gi)=>{
+      const hf=horFimPorEq[g.id];
+      if(!hf) return;
+      const input=document.getElementById(`g-hi-${gi}`);
+      if(input&&!input.value){ // só preenche se estiver vazio (não sobrescreve edição manual)
+        input.value=hf;
+        // atualiza label para indicar que foi sugerido automaticamente
+        const lbl=input.closest('.field')?.querySelector('label');
+        if(lbl&&!lbl.dataset.orig){
+          lbl.dataset.orig=lbl.textContent;
+          lbl.innerHTML=`${lbl.textContent} <span style="color:var(--yellow);font-size:10px;font-weight:600">(sugerido)</span>`;
+        }
+      }
+    });
+  },100);
 }
 
 function finalizarReg(){
