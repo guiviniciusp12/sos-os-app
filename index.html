@@ -542,7 +542,7 @@ function renderOSList(){
         ${!os.dataSaida||!os.dataRetorno?(regsEnviados.length?`<span class="badge badge-green">✓ ${regsEnviados.length} dia${regsEnviados.length!==1?'s':''}</span>`:`<span class="badge badge-yellow">Aguardando</span>`):''}
       </div>
       <div style="font-size:14px;color:var(--dim);margin-bottom:3px">${os.cliente}${os.evento?' · '+os.evento:''}</div>
-      <div style="font-size:12px;color:var(--dim)">${os.dataSaida||''}→${os.dataRetorno||''} · ${os.potencia||''} · ${os.patrimonio||''}</div>
+      <div style="font-size:12px;color:var(--dim)">${fmtData(os.dataSaida)}→${fmtData(os.dataRetorno)} · ${os.potencia||''} · ${os.patrimonio||''}</div>
       ${diasHTML}
     </div>`;
   }).join('');
@@ -981,7 +981,7 @@ function verOS(id){
     <table class="tbl">
       <tr><td style="color:var(--dim)">Evento</td><td>${os.evento||'—'}</td></tr>
       <tr><td style="color:var(--dim)">Equipamentos</td><td>${renderEquipTexto(os)}</td></tr>
-      <tr><td style="color:var(--dim)">Período</td><td>${os.dataSaida} → ${os.dataRetorno}</td></tr>
+      <tr><td style="color:var(--dim)">Período</td><td>${fmtData(os.dataSaida)} → ${fmtData(os.dataRetorno)}</td></tr>
       <tr><td style="color:var(--dim)">Local</td><td>${os.endereco||''}, ${os.cidade||''}/${os.uf||''}</td></tr>
       <tr><td style="color:var(--dim)">Operadores</td><td>${renderOperadoresTexto(os)}</td></tr>
       <tr><td style="color:var(--dim)">Criado por</td><td>${os.criadoPor||'—'}</td></tr>
@@ -1087,7 +1087,7 @@ function loadOperador(){
     <div class="os-item" onclick="abrirOpOS('${os.id}')">
       <div class="os-item-header"><span style="font-weight:700">OS ${os.num}</span><span class="badge badge-yellow">Aberta</span></div>
       <div style="font-size:13px;color:var(--dim)">${os.cliente}${os.evento?' · '+os.evento:''}</div>
-      <div style="font-size:12px;color:var(--dim)">${os.dataSaida} · ${renderEquipTexto(os)}</div>
+      <div style="font-size:12px;color:var(--dim)">${fmtData(os.dataSaida)} · ${renderEquipTexto(os)}</div>
       ${regsOp.length?`<div style="font-size:11px;color:var(--green);margin-top:3px">✓ ${regsOp.length} registro${regsOp.length>1?'s':''} enviado${regsOp.length>1?'s':''}</div>`:''}
     </div>`;
   }).join('');
@@ -1797,11 +1797,11 @@ function loadRelatorio(){
           const [,m,d2]=dt.split('-');
           const dow=abrev[new Date(dt+'T12:00:00').getDay()];
           return enviado
-            ? `<div title="${dt} — enviado" style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            ? `<div title="${d2}/${m} — enviado" style="display:flex;flex-direction:column;align-items:center;gap:2px">
                 <div style="width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">✓</div>
                 <span style="font-size:9px;color:var(--green);font-weight:600">${d2}/${m}</span>
                </div>`
-            : `<div title="${dt} — pendente" style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            : `<div title="${d2}/${m} — pendente" style="display:flex;flex-direction:column;align-items:center;gap:2px">
                 <div style="width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim)">${dow}</div>
                 <span style="font-size:9px;color:var(--dim)">${d2}/${m}</span>
                </div>`;
@@ -1819,7 +1819,7 @@ function loadRelatorio(){
           <span style="font-weight:700;font-size:14px">OS ${os.num}</span>
           <span style="font-size:13px;color:var(--dim);margin-left:8px">${os.cliente}</span>
         </div>
-        <span style="font-size:11px;color:var(--dim);white-space:nowrap;margin-left:8px">${os.dataSaida||''}→${os.dataRetorno||''}</span>
+        <span style="font-size:11px;color:var(--dim);white-space:nowrap;margin-left:8px">${fmtData(os.dataSaida)}→${fmtData(os.dataRetorno)}</span>
       </div>
       ${os.evento?`<div style="font-size:12px;color:var(--purple);margin-bottom:4px">🎪 ${os.evento}</div>`:''}
       <div style="font-size:11px;color:var(--dim);margin-bottom:2px">${equips}</div>
@@ -2873,7 +2873,7 @@ function loadHistorico(){
 // UTILS
 // ════════════════════════════════════════
 function toMin(t){if(!t) return 0;const[h,m]=t.split(':').map(Number);return h*60+m;}
-function fmtData(d){if(!d) return '';const[y,m,day]=d.split('-');return`${day}/${m}/${y}`;}
+function fmtData(d){if(!d) return '';const[y,m,day]=d.split('-');return`${day}/${m}/${String(y).slice(-2)}`;}
 function mascaraTel(el){
   let v=el.value.replace(/\D/g,'').substring(0,11);
   if(v.length<=10) v=v.replace(/(\d{2})(\d{4})(\d{0,4})/,'($1) $2-$3');
