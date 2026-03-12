@@ -645,7 +645,7 @@ function _gerarPrevisaoDias(){
   const dias=[];
   const d1=new Date(s+'T12:00'),d2=new Date(r+'T12:00');
   for(let d=new Date(d1);d<=d2;d.setDate(d.getDate()+1))
-    dias.push({data:d.toISOString().split('T')[0],hIni:'07:00',hFim:'19:00',naoRoda:false});
+    dias.push({data:d.toISOString().split('T')[0],hIni:'07:00',hFim:'19:00',naoRoda:false,hContratadas:12});
   return dias;
 }
 
@@ -721,20 +721,33 @@ function renderEquip(){
               return prev.map((dp,di)=>{
                 const dow=abrev[new Date(dp.data+'T12:00:00').getDay()];
                 const [,m,d2]=dp.data.split('-');
-                return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;padding:6px 8px;border-radius:6px;background:${dp.naoRoda?'rgba(204,0,0,.07)':'rgba(255,255,255,.03)'};border:1px solid ${dp.naoRoda?'rgba(204,0,0,.2)':'var(--border)'}">
-                  <span style="font-size:12px;font-weight:700;min-width:68px;color:var(--dim)">${dow} ${d2}/${m}</span>
-                  <div class="field" style="margin:0;flex:1;min-width:80px;${dp.naoRoda?'opacity:.35;pointer-events:none':''}">
-                    <label style="font-size:9px">Liga previsto</label>
-                    <input type="time" value="${dp.hIni||'07:00'}" oninput="equipamentosOS[${i}].previsaoDias[${di}].hIni=this.value" style="padding:4px 8px;height:32px;font-size:12px"/>
+                const hContr=dp.hContratadas||12;
+                const maisHoras=hContr>12;
+                return `<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;padding:8px;border-radius:6px;background:${dp.naoRoda?'rgba(204,0,0,.07)':'rgba(255,255,255,.03)'};border:1px solid ${dp.naoRoda?'rgba(204,0,0,.2)':maisHoras?'rgba(234,179,8,.3)':'var(--border)'}">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <span style="font-size:12px;font-weight:700;min-width:68px;color:${maisHoras?'var(--yellow)':'var(--dim)'}">${dow} ${d2}/${m}${maisHoras?` <span style="font-size:10px;background:rgba(234,179,8,.15);color:var(--yellow);border-radius:4px;padding:1px 5px">${hContr}h contrat.</span>`:''}</span>
+                    <div class="field" style="margin:0;flex:1;min-width:80px;${dp.naoRoda?'opacity:.35;pointer-events:none':''}">
+                      <label style="font-size:9px">Liga previsto</label>
+                      <input type="time" value="${dp.hIni||'07:00'}" oninput="equipamentosOS[${i}].previsaoDias[${di}].hIni=this.value" style="padding:4px 8px;height:32px;font-size:12px"/>
+                    </div>
+                    <div class="field" style="margin:0;flex:1;min-width:80px;${dp.naoRoda?'opacity:.35;pointer-events:none':''}">
+                      <label style="font-size:9px">Desliga previsto</label>
+                      <input type="time" value="${dp.hFim||'19:00'}" oninput="equipamentosOS[${i}].previsaoDias[${di}].hFim=this.value" style="padding:4px 8px;height:32px;font-size:12px"/>
+                    </div>
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;font-size:11px;color:var(--red-light)">
+                      <input type="checkbox" ${dp.naoRoda?'checked':''} onchange="equipamentosOS[${i}].previsaoDias[${di}].naoRoda=this.checked;renderEquip()" style="width:13px;height:13px;accent-color:var(--red);cursor:pointer"/>
+                      Não roda
+                    </label>
                   </div>
-                  <div class="field" style="margin:0;flex:1;min-width:80px;${dp.naoRoda?'opacity:.35;pointer-events:none':''}">
-                    <label style="font-size:9px">Desliga previsto</label>
-                    <input type="time" value="${dp.hFim||'19:00'}" oninput="equipamentosOS[${i}].previsaoDias[${di}].hFim=this.value" style="padding:4px 8px;height:32px;font-size:12px"/>
+                  <div style="display:flex;align-items:center;gap:8px;${dp.naoRoda?'opacity:.35;pointer-events:none':''}">
+                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--yellow)">
+                      <input type="checkbox" ${maisHoras?'checked':''} onchange="equipamentosOS[${i}].previsaoDias[${di}].hContratadas=this.checked?13:12;renderEquip()" style="width:13px;height:13px;accent-color:var(--yellow);cursor:pointer"/>
+                      Cliente contratou mais de 12h?
+                    </label>
+                    ${maisHoras?`<select onchange="equipamentosOS[${i}].previsaoDias[${di}].hContratadas=parseInt(this.value);renderEquip()" style="background:var(--card2);border:1px solid rgba(234,179,8,.4);border-radius:6px;color:var(--yellow);font-size:12px;padding:2px 8px;cursor:pointer">
+                      ${[13,14,15,16,17,18,19,20,21,22,23,24].map(h=>`<option value="${h}" ${hContr===h?'selected':''}>${h}h</option>`).join('')}
+                    </select>`:''}
                   </div>
-                  <label style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;font-size:11px;color:var(--red-light)">
-                    <input type="checkbox" ${dp.naoRoda?'checked':''} onchange="equipamentosOS[${i}].previsaoDias[${di}].naoRoda=this.checked;renderEquip()" style="width:13px;height:13px;accent-color:var(--red);cursor:pointer"/>
-                    Não roda
-                  </label>
                 </div>`;
               }).join('');
             })()}
@@ -945,7 +958,7 @@ function criarOS(){
       const dias=[];
       const d1=new Date(s+'T12:00'),d2=new Date(r+'T12:00');
       for(let d=new Date(d1);d<=d2;d.setDate(d.getDate()+1))
-        dias.push({data:d.toISOString().split('T')[0],hIni:'07:00',hFim:'19:00',naoRoda:false});
+        dias.push({data:d.toISOString().split('T')[0],hIni:'07:00',hFim:'19:00',naoRoda:false,hContratadas:12});
       return dias;
     })(),
     operadores:[...opsValidos],
@@ -1484,12 +1497,17 @@ function calcHEGerador(gi){
   // Horímetro final
   const hfEl=document.getElementById(`g-hf-${gi}`);
   if(hfEl&&hi) hfEl.value=(hi+totH).toFixed(1);
-  // Limite contratado: meia diária = 6h, diária completa = 12h
+  // Limite contratado: meia diária = 6h; ou hContratadas do dia; senão 12h padrão
   const meiadiaria=document.getElementById(`g-meia-${gi}`)?.checked||false;
-  const limiteH=meiadiaria?6:12;
+  const data=document.getElementById('op-data')?.value;
+  const g=(opOS?.equipamentos||[]).filter(e=>e.tipo==='gerador')[gi];
+  const prevDia=(g?.previsaoDias||[]).find(p=>p.data===data);
+  const hContratadas=prevDia?.hContratadas||12;
+  const limiteH=meiadiaria?6:hContratadas;
   const heM=Math.max(0,totH-limiteH);
   if(wEl&&txt){
-    if(heM>0){txt.textContent=`Operou ${totH.toFixed(1)}h — excedeu ${fmtHE(heM)} do contrato de ${limiteH}h (${meiadiaria?'meia diária':'diária'}).`;wEl.classList.add('show');}
+    const labelContrato=meiadiaria?'meia diária':(hContratadas>12?`${hContratadas}h contratadas`:'diária');
+    if(heM>0){txt.textContent=`Operou ${totH.toFixed(1)}h — excedeu ${fmtHE(heM)} do contrato de ${limiteH}h (${labelContrato}).`;wEl.classList.add('show');}
     else wEl.classList.remove('show');
   }
 }
@@ -1509,7 +1527,9 @@ function atualizarPrevisaoHint(){
     if(naoRoda){
       el.innerHTML=`<div style="font-size:11px;background:rgba(204,0,0,.08);border:1px solid rgba(204,0,0,.25);border-radius:6px;padding:5px 10px;display:inline-block;color:var(--red-light)">🚫 Gerador não opera neste dia (conforme planejamento)</div>`;
     } else if(hIni||hFim){
-      el.innerHTML=`<div style="font-size:11px;color:var(--dim);background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:6px;padding:5px 10px;display:inline-block">⏰ Previsão: <strong style="color:var(--fg)">${hIni||'--:--'} → ${hFim||'--:--'}</strong> <span style="font-size:10px;color:var(--dim)">(o horário real prevalece)</span></div>`;
+      const hContr=prev?.hContratadas||12;
+      const badgeContr=hContr>12?`<span style="margin-left:6px;background:rgba(234,179,8,.15);color:var(--yellow);font-size:10px;border-radius:4px;padding:1px 6px;font-weight:700">${hContr}h contratadas</span>`:'';
+      el.innerHTML=`<div style="font-size:11px;color:var(--dim);background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:6px;padding:5px 10px;display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap">⏰ Previsão: <strong style="color:var(--fg)">${hIni||'--:--'} → ${hFim||'--:--'}</strong>${badgeContr}<span style="font-size:10px;color:var(--dim)">(o horário real prevalece)</span></div>`;
     } else {
       el.innerHTML='';
     }
@@ -1528,10 +1548,13 @@ function coletarGeradoresReg(){
     const hi=document.getElementById(`g-hi-${gi}`)?.value||'';
     const hf=document.getElementById(`g-hf-${gi}`)?.value||'';
     const meiadiaria=document.getElementById(`g-meia-${gi}`)?.checked||false;
-    const limiteH=meiadiaria?6:12;
+    const data=document.getElementById('op-data')?.value;
+    const prevDia=(g.previsaoDias||[]).find(p=>p.data===data);
+    const hContratadas=prevDia?.hContratadas||12;
+    const limiteH=meiadiaria?6:hContratadas;
     let totH=0,heM=0;
     if(part&&par){const pM=toMin(part),sM=toMin(par);totH=(sM>pM?sM-pM:sM+1440-pM)/60;heM=Math.max(0,totH-limiteH);}
-    return {eqId:g.id,potencia:g.potencia||'',patrimonio:g.patrimonio||'',standby:isStandby,rodou,part,par,horIni:hi,horFim:hf,totalHoras:totH,heM,meiadiaria};
+    return {eqId:g.id,potencia:g.potencia||'',patrimonio:g.patrimonio||'',standby:isStandby,rodou,part,par,horIni:hi,horFim:hf,totalHoras:totH,heM,meiadiaria,hContratadas:limiteH};
   });
 }
 
