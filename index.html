@@ -2378,8 +2378,9 @@ function _gerarPDF(os, regsOS){
   const registrosHTML=regsOS.map(r=>{
     const heM=r.heMaquina||0;
     const heO=r.heOperador||0;
-    const heOMin=Math.round(heO*60);
-    const valHE=r.valorHEOperador||0;
+    const _opUserPdf=usuarios.find(u=>u.id===r.operadorId);
+    const _heValPdf=(_opUserPdf&&_opUserPdf.heValor>0)?_opUserPdf.heValor:config.heValor;
+    const valHE=heO*_heValPdf;
     return `
     <div class="reg-box">
       <div class="reg-header">
@@ -2398,7 +2399,7 @@ function _gerarPDF(os, regsOS){
         <div><span class="lbl">Chegada evento</span><span class="val">${r.itinerarioChegada||'—'}</span></div>
         <div><span class="lbl">Saída evento</span><span class="val">${r.itinerarioSaidaVolta||'—'}</span></div>
         <div><span class="lbl">Chegada empresa</span><span class="val">${r.itinerarioChegadaVolta||'—'}</span></div>
-        ${heO>0?`<div class="span2"><span class="lbl">HE Operador</span><span class="val he-val">${heOMin}min → R$ ${valHE.toFixed(2)}</span></div>`:''}
+        ${heO>0?`<div class="span2"><span class="lbl">HE Operador</span><span class="val he-val">${fmtHE(heO)} → R$ ${valHE.toFixed(2)}</span></div>`:''}
         ${r.obs?`<div class="span2"><span class="lbl">Observações</span><span class="val">${r.obs}</span></div>`:''}
       </div>
       <div class="sig-row">
@@ -2685,7 +2686,7 @@ function mascaraCnpjCpf(el){
   }
   el.value=v;
 }
-function fmtHE(h){if(!h||h<=0) return '—';const hInt=Math.floor(h);const min=Math.round((h-hInt)*60);return min===0?`${hInt}h`:`${hInt}h${min}min`;}
+function fmtHE(h){if(!h||h<=0) return '—';const hInt=Math.floor(h);const min=Math.round((h-hInt)*60);return min===0?`${hInt}h`:`${hInt}h${String(min).padStart(2,'0')}`;}
 
 function atualizarBadgeHEMes(){
   const badge=document.getElementById('nav-he-mes');
