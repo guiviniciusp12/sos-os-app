@@ -350,26 +350,32 @@ function doLoginFirebase(userVal, passVal) {
 
 // Funções de escrita Firebase
 function fbSet(path, data) {
+  // set() sobrescreve o nó inteiro — usar apenas para nós que este dispositivo controla totalmente (config)
   const p = db.ref(path).set(data).catch(e => console.warn('Firebase write error:', e));
+  return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000))]);
+}
+function fbUpdate(path, data) {
+  // update() faz merge — salva só as chaves enviadas sem apagar as demais
+  const p = db.ref(path).update(data).catch(e => console.warn('Firebase write error:', e));
   return Promise.race([p, new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),10000))]);
 }
 function fbSaveOrdens() {
   const obj = {};
   ordens.forEach(o => { obj[o.id] = o; });
-  return fbSet('ordens', obj);
+  return fbUpdate('ordens', obj); // merge: não apaga OS de outros usuários
 }
 function fbSaveRegistros() {
   const obj = {};
   registros.forEach(r => { obj[r.id] = r; });
-  return fbSet('registros', obj);
+  return fbUpdate('registros', obj); // merge: não apaga registros de outros operadores
 }
 function fbSaveUsuarios() {
   const obj = {};
   usuarios.forEach(u => { obj[u.id] = u; });
-  return fbSet('usuarios', obj);
+  return fbUpdate('usuarios', obj); // merge: não apaga usuários criados em outros dispositivos
 }
 function fbSaveConfig() {
-  return fbSet('config', config);
+  return fbSet('config', config); // config é global, set() está correto aqui
 }
 
 
