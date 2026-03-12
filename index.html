@@ -2247,6 +2247,207 @@ function loadHE(){
   gerarHE();
 }
 
+function editarHETimeReg(regId){
+  const r=registros.find(x=>x.id===regId);
+  if(!r) return;
+  document.getElementById('modal-hetime-edit')?.remove();
+  const u=usuarios.find(u=>u.id===r.operadorId);
+  const valorHora=(u&&u.heValor>0)?u.heValor:config.heValor;
+  const os=r.osId?ordens.find(o=>o.id===r.osId):null;
+  const geradores=os?(os.equipamentos||[]).filter(e=>e.tipo==='gerador'):[];
+
+  // Seção geradores (só para registros de OS com geradores)
+  const geradoresHTML=(!r.heAvulsa&&geradores.length)?`
+    <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">⚡ Geradores</div>
+    ${geradores.map((g,gi)=>{
+      const gd=(r.geradoresReg||[]).find(x=>x.eqId===g.id)||{};
+      if(gd.standby&&!gd.rodou) return `<div style="font-size:12px;color:var(--yellow);padding:4px 0">⚡ ${g.potencia||'Gerador'} (${g.patrimonio||'—'}) — Stand-by</div>`;
+      const hcVal=gd.hContratadas||12;
+      const hcOpts=[12,13,14,15,16,17,18,19,20,21,22,23,24].map(h=>`<option value="${h}"${h===hcVal?' selected':''}>${h}h</option>`).join('');
+      return `<div style="background:var(--dark);border-radius:8px;padding:10px;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px">⚡ ${g.potencia||'Gerador'} (${g.patrimonio||'—'})</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="field" style="margin:0"><label style="font-size:11px">Liga</label><input type="time" id="het-part-${gi}" value="${gd.part||''}"/></div>
+          <div class="field" style="margin:0"><label style="font-size:11px">Desliga</label><input type="time" id="het-par-${gi}" value="${gd.par||''}"/></div>
+          <div class="field" style="margin:0"><label style="font-size:11px">Horímetro Ini</label><input type="number" id="het-hi-${gi}" step="0.1" value="${gd.horIni||''}"/></div>
+          <div class="field" style="margin:0"><label style="font-size:11px">Horímetro Fim</label><input type="number" id="het-hf-${gi}" step="0.1" value="${gd.horFim||''}"/></div>
+          <div class="field" style="margin:0"><label style="font-size:11px">Horas contratadas</label><select id="het-hc-${gi}">${hcOpts}</select></div>
+          <div class="field" style="margin:0;display:flex;align-items:center;gap:6px;padding-top:18px">
+            <input type="checkbox" id="het-meia-${gi}" ${gd.meiadiaria?'checked':''} style="width:16px;height:16px;accent-color:var(--blue)"/>
+            <label for="het-meia-${gi}" style="font-size:11px;margin:0;cursor:pointer">Meia diária</label>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}`:'';
+
+  // Seção motivo (só avulsas)
+  const motivoHTML=r.heAvulsa?`
+    <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">📋 Motivo da HE</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      ${['Desmontagem','Ajudar a operar','Abastecer','Munkar'].map(m=>`
+      <label style="display:flex;align-items:center;gap:8px;background:var(--dark);border-radius:8px;padding:10px;cursor:pointer;font-size:13px">
+        <input type="radio" name="het-motivo" value="${m}" ${r.motivoHE===m?'checked':''} style="accent-color:var(--blue);width:16px;height:16px"/> ${m}
+      </label>`).join('')}
+    </div>`:'';
+
+  const pop=document.createElement('div');
+  pop.id='modal-hetime-edit';
+  pop.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9998;display:flex;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto';
+  pop.innerHTML=`
+    <div style="background:var(--card);border:1px solid var(--blue);border-radius:16px;padding:24px;max-width:480px;width:100%;margin:auto">
+      <div style="font-weight:700;font-size:15px;margin-bottom:2px">✏️ Editar HE — ${fmtData(r.data)}</div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:16px">${r.operadorNome||'—'}${r.heAvulsa?' · HE Avulsa':(r.osNum?' · OS '+r.osNum:'')}</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field" style="margin:0"><label style="font-size:11px">Data</label><input type="date" id="het-data" value="${r.data||''}"/></div>
+        <div class="field" style="margin:0"><label style="font-size:11px">Operador</label>
+          <select id="het-op">
+            ${usuarios.filter(u=>u.perfil==='operador').map(u=>`<option value="${u.id}" ${u.id===r.operadorId?'selected':''}>${u.nome}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">⏱ HE do Operador</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="field" style="margin:0"><label style="font-size:11px">Início HE</label><input type="time" id="het-he-ini" value="${r.heIni||''}"/></div>
+        <div class="field" style="margin:0"><label style="font-size:11px">Fim HE</label><input type="time" id="het-he-fim" value="${r.heFim||''}"/></div>
+        <div class="field" style="margin:0;display:flex;align-items:center;gap:6px;padding-top:4px">
+          <input type="checkbox" id="het-cedo" ${r.chegouCedo?'checked':''} style="width:16px;height:16px;accent-color:var(--blue)"/>
+          <label for="het-cedo" style="font-size:11px;margin:0;cursor:pointer">Chegou cedo</label>
+        </div>
+        <div></div>
+        <div class="field" style="margin:0"><label style="font-size:11px">Início (cedo)</label><input type="time" id="het-cedo-ini" value="${r.cedoIni||''}"/></div>
+        <div class="field" style="margin:0"><label style="font-size:11px">Fim (cedo)</label><input type="time" id="het-cedo-fim" value="${r.cedoFim||''}"/></div>
+      </div>
+      <div id="het-he-preview" style="font-size:12px;color:var(--yellow);margin-top:6px;min-height:16px"></div>
+
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">🍽 Refeições</div>
+      <div style="display:flex;gap:16px;margin-bottom:4px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="het-ref1" ${(r.refeicoes||0)>=1?'checked':''} style="width:16px;height:16px;accent-color:var(--blue)"/> Refeição 1 (R$25)
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="het-ref2" ${(r.refeicoes||0)>=2?'checked':''} style="width:16px;height:16px;accent-color:var(--blue)"/> Refeição 2 (R$25)
+        </label>
+      </div>
+
+      <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">📍 Identificação</div>
+      <div class="field" style="margin:0 0 8px"><label style="font-size:11px">Local</label><input type="text" id="het-local" value="${r.local||''}" placeholder="Local de trabalho"/></div>
+      <div class="field" style="margin:0 0 8px"><label style="font-size:11px">Evento / Obra</label><input type="text" id="het-evento" value="${r.evento||''}" placeholder="Nome do evento"/></div>
+
+      ${motivoHTML}
+      ${geradoresHTML}
+
+      <div class="field" style="margin-top:14px"><label>Observações</label><textarea id="het-obs" rows="2" placeholder="Observações...">${r.obs||''}</textarea></div>
+
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="btn btn-primary" style="flex:1" onclick="salvarHETimeReg('${regId}')">💾 Salvar</button>
+        <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('modal-hetime-edit').remove()">Cancelar</button>
+      </div>
+      <p style="font-size:10px;color:var(--dim);margin-top:8px;text-align:center">Correção administrativa — registrada em log.</p>
+    </div>`;
+  document.body.appendChild(pop);
+
+  // Preview dinâmico de HE total
+  const calcHEPreview=()=>{
+    const ini=document.getElementById('het-he-ini')?.value;
+    const fim=document.getElementById('het-he-fim')?.value;
+    const cedo=document.getElementById('het-cedo')?.checked;
+    const cIni=document.getElementById('het-cedo-ini')?.value;
+    const cFim=document.getElementById('het-cedo-fim')?.value;
+    const prev=document.getElementById('het-he-preview');
+    if(!prev) return;
+    let total=0;
+    if(ini&&fim){const iM=toMin(ini),fM=toMin(fim);total+=(fM>iM?fM-iM:fM+1440-iM)/60;}
+    if(cedo&&cIni&&cFim){const cIM=toMin(cIni),cFM=toMin(cFim);total+=(cFM>cIM?cFM-cIM:cFM+1440-cIM)/60;}
+    prev.textContent=total>0?`⏱ Total HE: ${fmtHE(total)}`:'';
+  };
+  ['het-he-ini','het-he-fim','het-cedo','het-cedo-ini','het-cedo-fim'].forEach(id=>{
+    document.getElementById(id)?.addEventListener('change',calcHEPreview);
+  });
+  calcHEPreview();
+}
+
+function salvarHETimeReg(regId){
+  const r=registros.find(x=>x.id===regId);
+  if(!r) return;
+  const os=r.osId?ordens.find(o=>o.id===r.osId):null;
+  const geradores=os?(os.equipamentos||[]).filter(e=>e.tipo==='gerador'):[];
+
+  // Dados básicos
+  r.data=document.getElementById('het-data')?.value||r.data;
+  const novoOpId=document.getElementById('het-op')?.value;
+  if(novoOpId&&novoOpId!==r.operadorId){
+    const novoOp=usuarios.find(u=>u.id===novoOpId);
+    if(novoOp){r.operadorId=novoOpId;r.operadorNome=novoOp.nome;}
+  }
+
+  // HE operador
+  const heIni=document.getElementById('het-he-ini')?.value||'';
+  const heFim=document.getElementById('het-he-fim')?.value||'';
+  r.heIni=heIni; r.heFim=heFim;
+  let heBase=0;
+  if(heIni&&heFim){const iM=toMin(heIni),fM=toMin(heFim);heBase=(fM>iM?fM-iM:fM+1440-iM)/60;}
+  r.chegouCedo=document.getElementById('het-cedo')?.checked||false;
+  const cedoIni=document.getElementById('het-cedo-ini')?.value||'';
+  const cedoFim=document.getElementById('het-cedo-fim')?.value||'';
+  r.cedoIni=cedoIni; r.cedoFim=cedoFim;
+  let heCedo=0;
+  if(r.chegouCedo&&cedoIni&&cedoFim){const cIM=toMin(cedoIni),cFM=toMin(cedoFim);heCedo=(cFM>cIM?cFM-cIM:cFM+1440-cIM)/60;}
+  r.heOperador=heBase+heCedo;
+  delete r.valorHEOperador;
+
+  // Refeições
+  const ref1=document.getElementById('het-ref1')?.checked?1:0;
+  const ref2=document.getElementById('het-ref2')?.checked?1:0;
+  r.refeicoes=ref1+ref2;
+  r.valorRefeicao=r.refeicoes*25;
+
+  // Identificação
+  r.local=document.getElementById('het-local')?.value??r.local;
+  r.evento=document.getElementById('het-evento')?.value??r.evento;
+  if(r.heAvulsa){const motivoEl=document.querySelector('input[name="het-motivo"]:checked');if(motivoEl) r.motivoHE=motivoEl.value;}
+  r.obs=document.getElementById('het-obs')?.value??r.obs;
+
+  // Geradores (OS vinculada)
+  if(!r.heAvulsa&&geradores.length&&r.geradoresReg){
+    geradores.forEach((g,gi)=>{
+      const gd=r.geradoresReg.find(x=>x.eqId===g.id);
+      if(!gd||(gd.standby&&!gd.rodou)) return;
+      const part=document.getElementById(`het-part-${gi}`)?.value;
+      const par=document.getElementById(`het-par-${gi}`)?.value;
+      const hi=parseFloat(document.getElementById(`het-hi-${gi}`)?.value||'0');
+      const hf=parseFloat(document.getElementById(`het-hf-${gi}`)?.value||'0');
+      const hc=parseInt(document.getElementById(`het-hc-${gi}`)?.value||'12');
+      const meia=document.getElementById(`het-meia-${gi}`)?.checked||false;
+      if(part!==undefined) gd.part=part;
+      if(par!==undefined) gd.par=par;
+      if(hi) gd.horIni=hi;
+      if(hf) gd.horFim=hf;
+      gd.hContratadas=isNaN(hc)?12:hc;
+      gd.meiadiaria=meia;
+      if(gd.part&&gd.par){
+        const pM=toMin(gd.part),sM=toMin(gd.par);
+        gd.totalHoras=(sM>pM?sM-pM:sM+1440-pM)/60;
+        gd.heM=Math.max(0,gd.totalHoras-(meia?6:gd.hContratadas));
+      }
+    });
+    const gRef=r.geradoresReg.find(g=>!g.standby||g.rodou);
+    if(gRef){r.partida=gRef.part;r.parada=gRef.par;r.horIni=gRef.horIni;r.horFim=gRef.horFim;r.totalHoras=gRef.totalHoras;}
+    r.heMaquina=r.geradoresReg.reduce((a,g)=>a+(g.heM||0),0);
+  }
+
+  // Audit trail
+  r.corrigidoPor=sessaoAtual.nome;
+  r.corrigidoEm=new Date().toISOString();
+
+  fbUpdate('registros/'+r.id, r).catch(()=>{});
+  DB.set('sos_registros',registros);
+  document.getElementById('modal-hetime-edit')?.remove();
+  showToast('HE atualizada com sucesso.');
+  gerarHE();
+}
+
 function gerarHE(){
   const mes=document.getElementById('he-mes')?.value;
   if(!mes) return;
@@ -2277,17 +2478,18 @@ function gerarHE(){
       const heHorario=(r.heIni&&r.heFim)?`${r.heIni} → ${r.heFim}`:'';
       return `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-          <div style="min-width:0;font-size:12px">
+          <div style="min-width:0;font-size:12px;flex:1">
             <span style="color:var(--dim)">${fmtData(r.data)}</span>
             ${r.heAvulsa?`<span style="font-weight:600;margin-left:8px;background:rgba(139,92,246,.15);color:#a78bfa;border-radius:4px;padding:1px 6px">Avulsa</span>`:(r.osNum?`<span style="font-weight:600;margin-left:8px">OS ${r.osNum}</span>`:'')}
             ${r.motivoHE?`<span style="margin-left:6px;color:var(--dim)">${r.motivoHE}</span>`:''}
             ${r.evento?`<span style="margin-left:6px;color:var(--dim)">${r.evento}</span>`:''}
             ${r.local?`<span style="margin-left:6px;color:var(--dim)">📍 ${r.local}</span>`:''}
+            <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              ${(r.heOperador||0)>0?`<span style="font-size:12px;background:rgba(234,179,8,.1);color:var(--yellow);border-radius:5px;padding:2px 7px;font-weight:600">⏱ ${fmtHE(r.heOperador)}${heHorario?' ('+heHorario+')':''} → R$ ${valHE.toFixed(2)}</span>`:''}
+              ${(r.refeicoes||0)>0?`<span style="font-size:12px;background:rgba(16,185,129,.1);color:#10b981;border-radius:5px;padding:2px 7px;font-weight:600">🍽 ×${r.refeicoes} → R$ ${valRef.toFixed(2)}</span>`:''}
+            </div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            ${(r.heOperador||0)>0?`<span style="font-size:12px;background:rgba(234,179,8,.1);color:var(--yellow);border-radius:5px;padding:2px 7px;font-weight:600">⏱ ${fmtHE(r.heOperador)}${heHorario?' ('+heHorario+')':''} → R$ ${valHE.toFixed(2)}</span>`:''}
-            ${(r.refeicoes||0)>0?`<span style="font-size:12px;background:rgba(16,185,129,.1);color:#10b981;border-radius:5px;padding:2px 7px;font-weight:600">🍽 ×${r.refeicoes} → R$ ${valRef.toFixed(2)}</span>`:''}
-          </div>
+          <button onclick="editarHETimeReg('${r.id}')" style="background:none;border:1px solid rgba(59,130,246,.3);color:var(--blue);border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;white-space:nowrap;flex-shrink:0">✏️ Editar</button>
         </div>
       </div>`;
     }).join('');
