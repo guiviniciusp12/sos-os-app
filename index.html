@@ -637,9 +637,21 @@ let equipamentosOS=[];
 let operadoresOS=[];   // [{id, userId, wpp}]
 let _editandoOSId=null; // null = criação, string = edição
 
+function _gerarPrevisaoDias(){
+  // Gera array previsaoDias a partir das datas preenchidas nos inputs f-saida/f-ret
+  const s=document.getElementById('f-saida')?.value;
+  const r=document.getElementById('f-ret')?.value;
+  if(!s||!r) return [];
+  const dias=[];
+  const d1=new Date(s+'T12:00'),d2=new Date(r+'T12:00');
+  for(let d=new Date(d1);d<=d2;d.setDate(d.getDate()+1))
+    dias.push({data:d.toISOString().split('T')[0],hIni:'07:00',hFim:'19:00',naoRoda:false});
+  return dias;
+}
+
 function addEquip(tipo){
   equipamentosOS.push(tipo==='gerador'
-    ? {id:'eq_'+Date.now(),tipo:'gerador',potencia:'',patrimonio:'',atuacao:'',heValorGerador:'',standby:false,previsaoDias:[]}
+    ? {id:'eq_'+Date.now(),tipo:'gerador',potencia:'',patrimonio:'',atuacao:'',heValorGerador:'',standby:false,previsaoDias:_gerarPrevisaoDias()}
     : {id:'eq_'+Date.now(),tipo:'acessorio',nome:'',quantidade:'1'});
   renderEquip();
   // foco no primeiro campo do item adicionado
