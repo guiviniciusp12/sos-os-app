@@ -1731,9 +1731,39 @@ function loadRelatorio(){
 
   function cardOS(os,corBorda){
     const regsOS=registros.filter(r=>r.osId===os.id&&(r.status==='enviado'||!r.status));
-    const diasRegistrados=regsOS.length;
+    const datasEnviadas=new Set(regsOS.map(r=>r.data));
     const equips=renderEquipTexto(os);
     const ops=(os.operadores||[]).map(op=>{const u=usuarios.find(u=>u.id===op.userId);return u?u.nome:'?';}).filter(Boolean);
+
+    // Gera lista de dias do evento
+    let diasHTML='';
+    if(os.dataSaida&&os.dataRetorno){
+      const dias=[];
+      const d=new Date(os.dataSaida+'T12:00:00');
+      const fim=new Date(os.dataRetorno+'T12:00:00');
+      while(d<=fim){dias.push(d.toISOString().split('T')[0]);d.setDate(d.getDate()+1);}
+      const abrev=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+      diasHTML=`<div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:6px">
+        ${dias.map(dt=>{
+          const enviado=datasEnviadas.has(dt);
+          const [,m,d2]=dt.split('-');
+          const dow=abrev[new Date(dt+'T12:00:00').getDay()];
+          return enviado
+            ? `<div title="${dt} — enviado" style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <div style="width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">✓</div>
+                <span style="font-size:9px;color:var(--green);font-weight:600">${d2}/${m}</span>
+               </div>`
+            : `<div title="${dt} — pendente" style="display:flex;flex-direction:column;align-items:center;gap:2px">
+                <div style="width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim)">${dow}</div>
+                <span style="font-size:9px;color:var(--dim)">${d2}/${m}</span>
+               </div>`;
+        }).join('')}
+      </div>`;
+    } else if(regsOS.length){
+      // OS sem datas definidas — só mostra contagem
+      diasHTML=`<div style="margin-top:6px"><span style="font-size:11px;color:var(--green)">✓ ${regsOS.length} dia${regsOS.length!==1?'s':''} enviado${regsOS.length!==1?'s':''}</span></div>`;
+    }
+
     return `
     <div onclick="verOS('${os.id}')" style="border:1px solid ${corBorda};border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;background:var(--card);transition:opacity .15s" onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
@@ -1744,11 +1774,9 @@ function loadRelatorio(){
         <span style="font-size:11px;color:var(--dim);white-space:nowrap;margin-left:8px">${os.dataSaida||''}→${os.dataRetorno||''}</span>
       </div>
       ${os.evento?`<div style="font-size:12px;color:var(--purple);margin-bottom:4px">🎪 ${os.evento}</div>`:''}
-      <div style="font-size:11px;color:var(--dim);margin-bottom:4px">${equips}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        ${ops.length?`<span style="font-size:11px;color:var(--dim)">👤 ${ops.join(', ')}</span>`:''}
-        ${diasRegistrados?`<span style="font-size:11px;color:var(--green)">✓ ${diasRegistrados} reg.</span>`:''}
-      </div>
+      <div style="font-size:11px;color:var(--dim);margin-bottom:2px">${equips}</div>
+      ${ops.length?`<div style="font-size:11px;color:var(--dim)">👤 ${ops.join(', ')}</div>`:''}
+      ${diasHTML}
     </div>`;
   }
 
