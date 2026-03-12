@@ -506,7 +506,8 @@ function renderOSList(){
   const lista=ordens.filter(o=>o.status!=='fechada').slice().reverse();
   if(!lista.length){el.innerHTML='<p style="color:var(--dim);font-size:13px;padding:6px 0">Nenhuma OS ativa. OS encerradas estão na aba <strong style="color:var(--dim)">Status</strong>.</p>';return;}
   el.innerHTML=lista.map(os=>{
-    const regsEnviados=registros.filter(r=>r.osId===os.id&&(r.status==='enviado'||!r.status));
+    // Bolinha verde para qualquer dia preenchido (rascunho ou enviado)
+    const regsEnviados=registros.filter(r=>r.osId===os.id);
     const datasEnviadas=new Set(regsEnviados.map(r=>r.data));
     const abrev=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 
@@ -1760,7 +1761,8 @@ function loadRelatorio(){
   const encerradasMes=doMes.filter(o=>o.status==='fechada');
 
   function cardOS(os,corBorda){
-    const regsOS=registros.filter(r=>r.osId===os.id&&(r.status==='enviado'||!r.status));
+    // Bolinha verde para qualquer dia preenchido (rascunho ou enviado)
+    const regsOS=registros.filter(r=>r.osId===os.id);
     const datasEnviadas=new Set(regsOS.map(r=>r.data));
     const equips=renderEquipTexto(os);
     const ops=(os.operadores||[]).map(op=>{const u=usuarios.find(u=>u.id===op.userId);return u?u.nome:'?';}).filter(Boolean);
