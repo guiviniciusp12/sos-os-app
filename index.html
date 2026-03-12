@@ -907,8 +907,12 @@ function verOS(id){
   det.style.display='block';
   det.innerHTML='<div style="text-align:center;padding:40px;color:var(--dim)">Carregando...</div>';
   function _renderVerOS_inner(){
-    // Admin só vê registros enviados (status==='enviado' ou sem status = retrocompatibilidade)
-    const regs=registros.filter(r=>r.osId===id&&(r.status==='enviado'||!r.status));
+    const isAdminView=sessaoAtual.perfil==='admin'||sessaoAtual.perfil==='comercial';
+    // Admin/comercial vê TODOS os registros (enviados, rascunhos e sem status)
+    // Operador só vê os próprios registros
+    const regs=isAdminView
+      ? registros.filter(r=>r.osId===id)
+      : registros.filter(r=>r.osId===id&&r.operadorId===sessaoAtual.id);
     const link=window.location.href.split('?')[0]+'?os='+os.id;
     det.innerHTML=`
   <div class="card">
@@ -934,15 +938,18 @@ function verOS(id){
     <div class="card-title">Registros do Operador (${regs.length})</div>
     ${regs.length?regs.map(r=>`
       <div style="border-bottom:1px solid var(--border);padding:10px 0">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px">
           <strong>${fmtData(r.data)}</strong>
-          ${(()=>{
-            if(r.geradoresReg&&r.geradoresReg.length){
-              const todosStandby=r.geradoresReg.every(g=>g.standby&&!g.rodou);
-              if(todosStandby) return '<span class="badge badge-yellow">Stand-by</span>';
-            }
-            return r.heMaquina>0?`<span class="badge badge-yellow">+${r.heMaquina.toFixed(1)}h HE máq.</span>`:'<span class="badge badge-green">Dentro contrato</span>';
-          })()}
+          <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
+            ${r.status==='rascunho'?'<span class="badge badge-yellow">📝 Rascunho</span>':''}
+            ${(()=>{
+              if(r.geradoresReg&&r.geradoresReg.length){
+                const todosStandby=r.geradoresReg.every(g=>g.standby&&!g.rodou);
+                if(todosStandby) return '<span class="badge badge-yellow">Stand-by</span>';
+              }
+              return r.heMaquina>0?`<span class="badge badge-yellow">+${r.heMaquina.toFixed(1)}h HE máq.</span>`:'<span class="badge badge-green">Dentro contrato</span>';
+            })()}
+          </div>
         </div>
         ${r.geradoresReg&&r.geradoresReg.length?r.geradoresReg.map(g=>`
           <div style="font-size:12px;color:var(--dim);margin-bottom:2px">
@@ -954,11 +961,11 @@ function verOS(id){
           ${r.assinatura?`<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura cliente</div><img src="${r.assinatura}" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>`:''}
           ${r.assinaturaOp?`<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura operador</div><img src="${r.assinaturaOp}" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>`:''}
         </div>
-        ${sessaoAtual.perfil==='admin'?`<button class="btn btn-ghost btn-sm" style="width:auto;margin-top:6px;font-size:11px;color:var(--yellow);border-color:rgba(234,179,8,.3)" onclick="editarHEReg('${r.id}')">✏️ Editar HE do operador</button>`:''}
+        ${isAdminView?`<button class="btn btn-ghost btn-sm" style="width:auto;margin-top:6px;font-size:11px;color:var(--yellow);border-color:rgba(234,179,8,.3)" onclick="editarHEReg('${r.id}')">✏️ Editar HE do operador</button>`:''}
       </div>`).join(''):'<p style="color:var(--dim);font-size:13px">Nenhum registro ainda.</p>'}
   </div>
   ${os.status!=='fechada'?`<button class="btn btn-green" onclick="fecharOSConf('${os.id}')">✓ Fechar OS</button>`:''}
-  ${(regs.length&&(sessaoAtual.perfil==='admin'||sessaoAtual.perfil==='comercial'))?`<button class="btn btn-primary" style="margin-top:8px;background:#1a1a2e;border:1px solid var(--red)" onclick="gerarPDFOS('${os.id}')">📄 Gerar PDF da OS</button>`:''}
+  ${isAdminView?`<button class="btn btn-primary" style="margin-top:8px;background:#1a1a2e;border:1px solid var(--red)" onclick="gerarPDFOS('${os.id}')">📄 Gerar PDF da OS</button>`:''}
   <button class="btn btn-ghost" style="margin-top:8px;color:var(--red-light);border-color:rgba(204,0,0,.3)" onclick="excluirOS('${os.id}')">🗑 Excluir OS</button>
   <button class="btn btn-ghost" style="margin-top:8px" onclick="fecharDet()">← Voltar</button>`;
   } // fim _renderVerOS_inner
