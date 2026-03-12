@@ -188,6 +188,9 @@
       <input type="password" id="login-pass" placeholder="••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
     </div>
     <div id="login-err" style="color:var(--red-light);font-size:13px;margin-bottom:12px;display:none">Usuário ou senha incorretos.</div>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer;font-size:13px;color:var(--dim)">
+      <input type="checkbox" id="login-lembrar" style="accent-color:var(--blue);width:15px;height:15px"/> Lembrar meu acesso
+    </label>
     <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Entrar</button>
   </div>
 </div>
@@ -416,6 +419,9 @@ function doLogin(){
   const u=document.getElementById('login-user').value.trim().toLowerCase();
   const p=document.getElementById('login-pass').value;
   if(!u||!p){document.getElementById('login-err').style.display='block';return;}
+  const lembrar=document.getElementById('login-lembrar')?.checked;
+  if(lembrar){localStorage.setItem('sos_saved_user',u);localStorage.setItem('sos_saved_pass',p);}
+  else{localStorage.removeItem('sos_saved_user');localStorage.removeItem('sos_saved_pass');}
   const btn=document.getElementById('login-btn');
   btn.disabled=true; btn.textContent='Verificando...';
   document.getElementById('login-err').style.display='none';
@@ -432,9 +438,14 @@ function doLogout(){
   sessaoAtual=null;
   document.getElementById('main-nav').style.display='none';
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  // Ao deslogar explicitamente, limpa credenciais salvas
+  localStorage.removeItem('sos_saved_user');
+  localStorage.removeItem('sos_saved_pass');
   document.getElementById('login-user').value='';
   document.getElementById('login-pass').value='';
   document.getElementById('login-err').style.display='none';
+  const lembrarEl=document.getElementById('login-lembrar');
+  if(lembrarEl) lembrarEl.checked=false;
   const btn=document.getElementById('login-btn');
   if(btn){btn.disabled=false;btn.textContent='Entrar';}
   document.getElementById('login-screen').style.display='flex';
@@ -3512,6 +3523,20 @@ if(_p.get('os')){
   // auto-login como operador se não logado (link direto do WhatsApp)
   // mostra tela de login normalmente — operador faz login e cai na aba certa
 }
+
+// Pré-preenche login se credenciais salvas
+(function(){
+  const savedUser=localStorage.getItem('sos_saved_user');
+  const savedPass=localStorage.getItem('sos_saved_pass');
+  if(savedUser&&savedPass){
+    const uEl=document.getElementById('login-user');
+    const pEl=document.getElementById('login-pass');
+    const lEl=document.getElementById('login-lembrar');
+    if(uEl) uEl.value=savedUser;
+    if(pEl) pEl.value=savedPass;
+    if(lEl) lEl.checked=true;
+  }
+})();
 </script>
 </body>
 </html>
