@@ -2408,20 +2408,29 @@ function svcfg(btnId, feedbackId){
 
 function renderUsers(){
   const el=document.getElementById('lista-users');if(!el) return;
+  const isMaster=sessaoAtual?.id==='adm_0';
   el.innerHTML=usuarios.map(u=>`
     <div class="user-chip">
-      <div>
+      <div style="flex:1;min-width:0">
         <span style="font-weight:600">${u.nome}</span>
         <span style="color:var(--dim);font-size:12px"> · ${u.user} · </span>
         <span class="badge ${u.perfil==='admin'?'badge-red':u.perfil==='comercial'?'badge-blue':'badge-yellow'}" style="font-size:10px">${u.perfil}</span>
         ${u.wpp?`<span style="color:#25D366;font-size:11px;margin-left:6px">📱 ${u.wpp}</span>`:''}
         ${u.perfil==='operador'&&u.heValor?`<span style="color:var(--yellow);font-size:11px;margin-left:6px">R$${u.heValor}/h HE</span>`:''}
+        ${isMaster?`<span id="senha-chip-${u.id}" style="font-size:11px;color:var(--dim);margin-left:6px;font-family:monospace">••••••</span>`:''}
       </div>
       <div style="display:flex;align-items:center;gap:8px">
+        ${isMaster?`<button onclick="toggleSenhaChip('${u.id}','${u.senha}')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:15px;padding:2px 4px" title="Ver/ocultar senha">👁</button>`:''}
         <button onclick="editUser('${u.id}')" style="background:none;border:none;color:var(--blue,#3b82f6);cursor:pointer;font-size:14px;padding:2px 4px" title="Editar">✏️</button>
         ${u.id!=='adm_0'?`<button onclick="delUser('${u.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:20px;line-height:1" title="Remover">×</button>`:'<span style="font-size:11px;color:var(--dim)">master</span>'}
       </div>
     </div>`).join('');
+}
+
+function toggleSenhaChip(uid, senha){
+  const el=document.getElementById('senha-chip-'+uid);
+  if(!el) return;
+  el.textContent=el.textContent==='••••••'?senha:'••••••';
 }
 
 let _editUserId=null;
