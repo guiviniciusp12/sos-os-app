@@ -3570,8 +3570,22 @@ function salvarHEAvulsa(){
   registros.push(reg);
   fbUpdate('registros/'+reg.id, reg).catch(()=>{});
   DB.set('sos_registros',registros);
-  showToast('HE Avulsa registrada!');
-  loadHEAvulsa();
+  // Modal de confirmação — redireciona para OS ao fechar
+  const _modal=document.createElement('div');
+  _modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  _modal.innerHTML=`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:340px;width:100%;padding:28px 24px;text-align:center">
+      <div style="font-size:44px;margin-bottom:10px">✅</div>
+      <div style="font-weight:700;font-size:17px;color:var(--fg);margin-bottom:6px">HE registrada!</div>
+      <div style="font-size:13px;color:var(--dim);line-height:1.5;margin-bottom:20px">
+        ${fmtHE(heOperador)} de HE ${evento?'em <strong>'+evento+'</strong>':''} ${local?'· '+local:''}<br>
+        ${refeicoes?refeicoes+' refeição(ões) · ':''}enviada ao administrativo.
+      </div>
+      <button onclick="this.closest('[style*=fixed]').remove();const btn=Array.from(document.querySelectorAll('.nav-tab')).find(b=>b.dataset.page==='operador'||b.textContent.trim()==='OS');if(btn)switchPage('operador',btn);else loadOperador();" style="width:100%;padding:13px;background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.4);color:var(--green);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">
+        ← Voltar para OS
+      </button>
+    </div>`;
+  document.body.appendChild(_modal);
 }
 
 function excluirHEAvulsa(id){
