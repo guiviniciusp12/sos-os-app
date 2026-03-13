@@ -2839,7 +2839,9 @@ function gerarHE(){
     const linhasHE=regsComHE.map(r=>{
       const valHE=(r.heOperador||0)*valorHora;
       const valRef=(r.valorRefeicao||((r.refeicoes||0)*25));
+      const heBase=r.heOperador-(r.heCedo||0);
       const heHorario=(r.heIni&&r.heFim)?`${r.heIni} → ${r.heFim}`:'';
+      const cedoBadge=(r.chegouCedo&&(r.heCedo||0)>0)?`<span style="font-size:11px;background:rgba(99,102,241,.15);color:#818cf8;border-radius:5px;padding:2px 7px;font-weight:600;display:inline-flex;align-items:center;gap:4px">🏢 Cedo ${r.cedoIni&&r.cedoFim?r.cedoIni+'→'+r.cedoFim:''} <span style="opacity:.8">${fmtHE(r.heCedo)}</span></span>`:'';
       return `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
           <div style="min-width:0;font-size:12px;flex:1">
@@ -2850,6 +2852,7 @@ function gerarHE(){
             ${r.local?`<span style="margin-left:6px;color:var(--dim)">📍 ${r.local}</span>`:''}
             <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
               ${(r.heOperador||0)>0?`<span style="font-size:12px;background:rgba(234,179,8,.1);color:var(--yellow);border-radius:5px;padding:2px 7px;font-weight:600">⏱ ${fmtHE(r.heOperador)}${heHorario?' ('+heHorario+')':''} → R$ ${valHE.toFixed(2)}</span>`:''}
+              ${cedoBadge}
               ${(r.refeicoes||0)>0?`<span style="font-size:12px;background:rgba(16,185,129,.1);color:#10b981;border-radius:5px;padding:2px 7px;font-weight:600">🍽 ×${r.refeicoes} → R$ ${valRef.toFixed(2)}</span>`:''}
             </div>
           </div>
