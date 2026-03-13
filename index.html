@@ -3295,11 +3295,15 @@ function gerarPDFOperador(){
     const tdStyle='text-align:center';
     const p2=temPeriodo2?`<td style="${tdStyle}">${r.heIni2||'—'}</td><td style="${tdStyle}">${r.heFim2||'—'}</td>`:'';
     return `<tr style="background:${bg}">
-      <td style="white-space:nowrap">${dt}</td><td style="white-space:nowrap">${dia}</td><td>${local}</td><td>${evento}</td>
-      <td style="${tdStyle}">${os}</td>
-      <td style="${tdStyle}">${e1}</td><td style="${tdStyle}">${s1}</td>
+      <td style="white-space:nowrap">${dt}</td>
+      <td style="white-space:nowrap">${dia}</td>
+      <td style="word-break:break-word">${local}</td>
+      <td style="word-break:break-word">${evento}</td>
+      <td style="white-space:nowrap;text-align:center">${os}</td>
+      <td style="white-space:nowrap;text-align:center">${e1}</td>
+      <td style="white-space:nowrap;text-align:center">${s1}</td>
       ${p2}
-      <td style="${tdStyle};font-weight:700;color:#111">${sub}</td>
+      <td style="white-space:nowrap;text-align:center;font-weight:700;color:#111">${sub}</td>
     </tr>`;
   }).join('');
 
