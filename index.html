@@ -3051,6 +3051,7 @@ function loadRelatorioHE(){
           <option value="historico">Histórico importado (Dez/Jan/Fev)</option>
         </select>
         <input type="month" id="rhe-mes" value="${hoje}" onchange="renderRelatorioHE()" style="padding:8px 10px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:13px"/>
+        <button onclick="gerarPDFRelatorioHE()" style="padding:8px 14px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📄 Gerar PDF</button>
       </div>
     </div>
     <p style="font-size:12px;color:var(--dim);margin:0">Selecione a fonte e o mês para visualizar o relatório consolidado.</p>
@@ -3180,6 +3181,215 @@ function renderRelatorioHE(){
       <span style="font-size:11px;color:var(--dim)">${dadosOp.length} operador${dadosOp.length!==1?'es':''}</span>
     </div>
     ${linhas}
+  </div>`;
+}
+
+function gerarPDFRelatorioHE(){
+  const fonte=document.getElementById('rhe-fonte')?.value||'app';
+  const mes=document.getElementById('rhe-mes')?.value||new Date().toISOString().slice(0,7);
+
+  // ── coleta dados ──────────────────────────────────────────────
+  let titulo,subtitulo,metricas,ranking,ganhos,resumoExec,comparativoHTML='',notaHTML='';
+
+  if(fonte==='historico'){
+    // Monta a partir dos 3 meses históricos
+    const meses=Object.keys(_heHistorico);
+    const todosFuncs=[...new Set(meses.flatMap(m=>_heHistorico[m].funcionarios.map(f=>f.nome)))];
+    const resumoFuncs=todosFuncs.map(nome=>{
+      const totalH=meses.reduce((a,m)=>{const f=_heHistorico[m].funcionarios.find(x=>x.nome===nome);return a+(f?f.horas:0);},0);
+      const totalV=meses.reduce((a,m)=>{const f=_heHistorico[m].funcionarios.find(x=>x.nome===nome);return a+(f?f.valor:0);},0);
+      const eventos=meses.reduce((a,m)=>{const f=_heHistorico[m].funcionarios.find(x=>x.nome===nome);return a+(f?1:0);},0);
+      return {nome,totalH,totalV,eventos};
+    }).sort((a,b)=>b.totalV-a.totalV);
+    const totalH3=meses.reduce((a,m)=>a+_heHistorico[m].horas,0);
+    const totalV3=meses.reduce((a,m)=>a+_heHistorico[m].total,0);
+    const topGanho=resumoFuncs[0];
+    const topHoras=[...resumoFuncs].sort((a,b)=>b.totalH-a.totalH)[0];
+    titulo='DASHBOARD GESTÃO HE · SOS ENERGIA';
+    subtitulo='Dezembro 2025 · Janeiro 2026 · Fevereiro 2026';
+    metricas=[
+      {label:'COLABORADORES ATIVOS',valor:todosFuncs.length,sub:'em 3 meses',cor:'#e74c3c'},
+      {label:'TOTAL HORAS EXTRAS',valor:fmtHE(totalH3),sub:'média '+fmtHE(totalH3/todosFuncs.length)+'/pessoa',cor:'#e67e22'},
+      {label:'CUSTO TOTAL 3 MESES',valor:'R$ '+totalV3.toFixed(2),sub:'média R$ '+(totalV3/todosFuncs.length).toFixed(2)+'/pessoa',cor:'#9b59b6'},
+      {label:'MAIOR GERADOR DE RECEITA',valor:topGanho.nome.split(' ')[0],sub:'R$ '+topGanho.totalV.toFixed(2),cor:'#2ecc71'},
+      {label:'MAIS HORAS',valor:topHoras.nome.split(' ')[0],sub:fmtHE(topHoras.totalH),cor:'#3498db'},
+    ];
+    const maxV=resumoFuncs[0]?.totalV||1;
+    const maxH=[...resumoFuncs].sort((a,b)=>b.totalH-a.totalH)[0]?.totalH||1;
+    const scoreMap={};
+    resumoFuncs.forEach((f,i)=>{scoreMap[f.nome]=Math.round(100*(1-(i/resumoFuncs.length)));});
+    ranking=[...resumoFuncs].sort((a,b)=>scoreMap[b.nome]-scoreMap[a.nome]).slice(0,8).map(f=>({nome:f.nome.split(' ')[0],pts:scoreMap[f.nome],pct:Math.round((scoreMap[f.nome]/100)*100)}));
+    ganhos=resumoFuncs.slice(0,8).map((f,i)=>{
+      const cores=['#e74c3c','#e74c3c','#e67e22','#2ecc71','#9b59b6','#3498db','#1abc9c','#f39c12'];
+      return {nome:f.nome.split(' ')[0],valor:'R$ '+f.totalV.toFixed(2),pct:Math.round((f.totalV/maxV)*100),cor:cores[i]||'#95a5a6'};
+    });
+    resumoExec=`No trimestre <strong>Dez/25–Fev/26</strong>, a equipe freelance da SOS Energia somou <strong style="color:#e67e22">${fmtHE(totalH3)}</strong> em horas extras com custo total de <strong style="color:#e74c3c">R$ ${totalV3.toFixed(2)}</strong>. Maior gerador de receita: <strong style="color:#e74c3c">${topGanho.nome}</strong> (R$ ${topGanho.totalV.toFixed(2)}). Maior carga horária: <strong style="color:#e67e22">${topHoras.nome}</strong> (${fmtHE(topHoras.totalH)}).`;
+    comparativoHTML=_rhe_pdf_comparativo();
+  } else {
+    // App — mês selecionado
+    const [ano,mesN]=mes.split('-');
+    const nomeMes=new Date(parseInt(ano),parseInt(mesN)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    const regsDoMes=registros.filter(r=>r.data&&r.data.startsWith(mes));
+    const operadores=usuarios.filter(u=>u.perfil==='operador');
+    const dadosOp=operadores.map(u=>{
+      const regsOp=regsDoMes.filter(r=>r.operadorId===u.id);
+      const totalHE=regsOp.reduce((a,r)=>a+(r.heOperador||0),0);
+      const totalRef=regsOp.reduce((a,r)=>a+(r.refeicoes||0),0);
+      if(!totalHE&&!totalRef) return null;
+      const valorHora=(u.heValor&&u.heValor>0)?u.heValor:config.heValor;
+      const valorHE=totalHE*valorHora;
+      const valorRef=totalRef*25;
+      const chaveDesc=`${u.id}_${mes}`;
+      const desc=(descontosHE[chaveDesc]||[]).reduce((a,d)=>a+(d.valor||0),0);
+      return {nome:u.nome,totalHE,valorHE,valorRef,desc,liquido:Math.max(0,valorHE+valorRef-desc),regs:regsOp.length,totalRef};
+    }).filter(Boolean).sort((a,b)=>b.liquido-a.liquido);
+    if(!dadosOp.length){alert('Nenhum dado para este mês no app.');return;}
+    const totalH=dadosOp.reduce((a,f)=>a+f.totalHE,0);
+    const totalV=dadosOp.reduce((a,f)=>a+f.liquido,0);
+    const totalDesc=dadosOp.reduce((a,f)=>a+f.desc,0);
+    const topGanho=dadosOp[0];
+    const topHoras=[...dadosOp].sort((a,b)=>b.totalHE-a.totalHE)[0];
+    titulo='RELATÓRIO HE · SOS OS APP';
+    subtitulo=nomeMes.toUpperCase();
+    metricas=[
+      {label:'OPERADORES COM HE',valor:dadosOp.length,sub:'no mês',cor:'#e74c3c'},
+      {label:'TOTAL HORAS EXTRAS',valor:fmtHE(totalH),sub:'média '+fmtHE(totalH/dadosOp.length)+'/pessoa',cor:'#e67e22'},
+      {label:'TOTAL A PAGAR',valor:'R$ '+totalV.toFixed(2),sub:totalDesc>0?'desc. R$ '+totalDesc.toFixed(2):'sem descontos',cor:'#9b59b6'},
+      {label:'MAIOR GANHADOR',valor:topGanho.nome.split(' ')[0],sub:'R$ '+topGanho.liquido.toFixed(2),cor:'#2ecc71'},
+      {label:'MAIS HORAS',valor:topHoras.nome.split(' ')[0],sub:fmtHE(topHoras.totalHE),cor:'#3498db'},
+    ];
+    const maxV=dadosOp[0]?.liquido||1;
+    const maxH=[...dadosOp].sort((a,b)=>b.totalHE-a.totalHE)[0]?.totalHE||1;
+    const scoreBase=[...dadosOp].sort((a,b)=>b.totalHE-a.totalHE);
+    ranking=scoreBase.slice(0,8).map((f,i)=>{const pts=Math.round(100*(1-i/scoreBase.length));return{nome:f.nome.split(' ')[0],pts,pct:pts};});
+    const cores=['#e74c3c','#e74c3c','#e67e22','#2ecc71','#9b59b6','#3498db','#1abc9c','#f39c12'];
+    ganhos=dadosOp.slice(0,8).map((f,i)=>({nome:f.nome.split(' ')[0],valor:'R$ '+f.liquido.toFixed(2),pct:Math.round((f.liquido/maxV)*100),cor:cores[i]||'#95a5a6'}));
+    resumoExec=`Em <strong>${nomeMes}</strong>, ${dadosOp.length} operador${dadosOp.length!==1?'es':''} registraram horas extras no sistema. Total de <strong style="color:#e67e22">${fmtHE(totalH)}</strong> em HE com custo líquido de <strong style="color:#e74c3c">R$ ${totalV.toFixed(2)}</strong>${totalDesc>0?' (após R$ '+totalDesc.toFixed(2)+' em descontos)':''}.  Maior ganhador: <strong style="color:#e74c3c">${topGanho.nome}</strong> (R$ ${topGanho.liquido.toFixed(2)}). Maior carga: <strong style="color:#e67e22">${topHoras.nome}</strong> (${fmtHE(topHoras.totalHE)}).`;
+  }
+
+  // ── monta HTML do PDF ─────────────────────────────────────────
+  const rankHTML=ranking.map((f,i)=>{
+    const corBarra=f.pct>=75?'#e74c3c':f.pct>=50?'#e67e22':f.pct>=30?'#f1c40f':'#95a5a6';
+    return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <div style="width:90px;font-size:13px;font-weight:600;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.nome}</div>
+      <div style="flex:1;background:#2a2a2a;border-radius:4px;height:22px;overflow:hidden">
+        <div style="height:100%;background:${corBarra};border-radius:4px;width:${f.pct}%;transition:width .3s"></div>
+      </div>
+      <div style="width:52px;text-align:right;font-size:13px;font-weight:700;color:#fff">${f.pts}pts</div>
+    </div>`;
+  }).join('');
+
+  const ganhoHTML=ganhos.map(f=>`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <div style="width:90px;font-size:13px;font-weight:600;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.nome}</div>
+      <div style="flex:1;background:#2a2a2a;border-radius:4px;height:22px;overflow:hidden">
+        <div style="height:100%;background:${f.cor};border-radius:4px;width:${f.pct}%"></div>
+      </div>
+      <div style="width:90px;text-align:right;font-size:12px;font-weight:700;color:#fff">${f.valor}</div>
+    </div>`).join('');
+
+  const metricaHTML=metricas.map(m=>`
+    <div style="background:#1e1e1e;border:1px solid #333;border-top:3px solid ${m.cor};border-radius:8px;padding:16px 14px;min-width:0">
+      <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">${m.label}</div>
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">${m.valor}</div>
+      <div style="font-size:11px;color:#666">${m.sub}</div>
+    </div>`).join('');
+
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>${titulo}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#141414;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:28px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  @media print{body{padding:16px;} .no-print{display:none!important;} @page{margin:10mm;size:A4 landscape;}}
+</style>
+</head>
+<body>
+<!-- Header -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid #333">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div style="width:44px;height:44px;background:#e74c3c;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px">⚡</div>
+    <div>
+      <div style="font-size:20px;font-weight:800;letter-spacing:.5px">${titulo}</div>
+      <div style="font-size:13px;color:#888;margin-top:2px">${subtitulo}</div>
+    </div>
+  </div>
+  <div style="font-size:12px;color:#555">Gerado em ${new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+</div>
+
+<!-- Separador seção -->
+<div style="background:#1a1a1a;border:1px solid #333;border-left:4px solid #e74c3c;border-radius:6px;padding:8px 14px;margin-bottom:18px;display:inline-block">
+  <span style="font-size:11px;font-weight:700;color:#e74c3c;text-transform:uppercase;letter-spacing:.8px">● VISÃO GERAL CONSOLIDADA</span>
+</div>
+
+<!-- Métricas -->
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px">
+  ${metricaHTML}
+</div>
+
+<!-- Resumo Executivo -->
+<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;line-height:1.7;color:#ccc">
+  <span style="color:#e74c3c;font-weight:700;margin-right:6px">📋 Resumo Executivo:</span>${resumoExec}
+</div>
+
+<!-- Ranking + Ganhos -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+  <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px">
+    <div style="font-size:12px;font-weight:700;color:#f1c40f;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">🏆 RANKING DE EMPENHO (HORAS)</div>
+    ${rankHTML}
+  </div>
+  <div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px">
+    <div style="font-size:12px;font-weight:700;color:#2ecc71;text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">💰 QUEM MAIS GANHOU</div>
+    ${ganhoHTML}
+  </div>
+</div>
+
+${comparativoHTML}
+
+<!-- Rodapé -->
+<div style="border-top:1px solid #333;padding-top:12px;display:flex;justify-content:space-between;font-size:11px;color:#555">
+  <span>SOS OS App · Relatório HE</span>
+  <span>${subtitulo}</span>
+</div>
+</body></html>`;
+
+  const win=window.open('','_blank','width=1200,height=800');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(()=>win.print(),600);
+}
+
+function _rhe_pdf_comparativo(){
+  const meses=Object.keys(_heHistorico);
+  const todosNomes=[...new Set(meses.flatMap(m=>_heHistorico[m].funcionarios.map(f=>f.nome)))].sort();
+  const rows=todosNomes.map(nome=>{
+    const cols=meses.map(m=>{
+      const f=_heHistorico[m].funcionarios.find(x=>x.nome===nome);
+      return f?`<td style="text-align:right;padding:5px 8px;color:#e67e22;font-size:11px">${fmtHE(f.horas)}</td><td style="text-align:right;padding:5px 8px;color:#2ecc71;font-size:11px">R$ ${f.valor.toFixed(2)}</td>`
+               :`<td style="text-align:right;padding:5px 8px;color:#444;font-size:11px">—</td><td style="text-align:right;padding:5px 8px;color:#444;font-size:11px">—</td>`;
+    }).join('');
+    const total=meses.reduce((a,m)=>{const f=_heHistorico[m].funcionarios.find(x=>x.nome===nome);return a+(f?f.valor:0);},0);
+    return `<tr style="border-bottom:1px solid #2a2a2a"><td style="padding:5px 8px;font-size:11px;font-weight:600;color:#ccc;white-space:nowrap">${nome}</td>${cols}<td style="text-align:right;padding:5px 8px;color:#2ecc71;font-weight:700;font-size:12px">R$ ${total.toFixed(2)}</td></tr>`;
+  }).join('');
+  return `<div style="background:#1a1a1a;border:1px solid #333;border-radius:8px;padding:16px;margin-bottom:20px;overflow-x:auto">
+    <div style="font-size:12px;font-weight:700;color:#9b59b6;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px">📅 COMPARATIVO 3 MESES — TODOS OS FUNCIONÁRIOS</div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead><tr style="border-bottom:2px solid #333">
+        <th style="text-align:left;padding:6px 8px;font-size:10px;color:#666;font-weight:600">FUNCIONÁRIO</th>
+        <th colspan="2" style="text-align:center;padding:6px 8px;font-size:10px;color:#666;font-weight:600">DEZ 2025</th>
+        <th colspan="2" style="text-align:center;padding:6px 8px;font-size:10px;color:#666;font-weight:600">JAN 2026</th>
+        <th colspan="2" style="text-align:center;padding:6px 8px;font-size:10px;color:#666;font-weight:600">FEV 2026</th>
+        <th style="text-align:right;padding:6px 8px;font-size:10px;color:#2ecc71;font-weight:700">TOTAL</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr style="border-top:2px solid #444">
+        <td style="padding:6px 8px;font-size:11px;font-weight:800;color:#fff">TOTAL</td>
+        ${Object.values(_heHistorico).map(d=>`<td style="text-align:right;padding:6px 8px;color:#e67e22;font-size:11px;font-weight:700">${fmtHE(d.horas)}</td><td style="text-align:right;padding:6px 8px;color:#2ecc71;font-size:11px;font-weight:700">R$ ${d.total.toFixed(2)}</td>`).join('')}
+        <td style="text-align:right;padding:6px 8px;color:#2ecc71;font-weight:800;font-size:13px">R$ ${Object.values(_heHistorico).reduce((a,d)=>a+d.total,0).toFixed(2)}</td>
+      </tr></tfoot>
+    </table>
   </div>`;
 }
 
