@@ -1290,18 +1290,12 @@ function buildOpForm(os){
           <p style="font-size:11px;color:var(--dim);margin-top:-4px;margin-bottom:4px">Horas antes das 08h contam como HE e serão somadas automaticamente.</p>
         </div>
         <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 12px;margin-top:4px">
-          <div style="font-size:11px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">🍽 Refeições durante a HE</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap">
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-              <input type="checkbox" id="op-ref1" style="width:15px;height:15px;accent-color:#10b981;cursor:pointer"/>
-              <span>Refeição 1 <span style="font-size:11px;color:var(--dim)">(R$ 25,00)</span></span>
-            </label>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
-              <input type="checkbox" id="op-ref2" style="width:15px;height:15px;accent-color:#10b981;cursor:pointer"/>
-              <span>Refeição 2 <span style="font-size:11px;color:var(--dim)">(R$ 25,00)</span></span>
-            </label>
+          <div style="font-size:11px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">🍽 Refeições durante a HE</div>
+          <div style="display:flex;align-items:center;gap:12px">
+            ${refStepperHTML('op-ref',0)}
+            <span style="font-size:12px;color:var(--dim)">refeição(ões) · R$ 25,00 cada</span>
           </div>
-          <p style="font-size:11px;color:var(--dim);margin:6px 0 0">Marque cada refeição feita durante a HE. Valor somado separadamente ao total.</p>
+          <p style="font-size:11px;color:var(--dim);margin:8px 0 0">Use + e − para indicar quantas refeições foram feitas durante a HE.</p>
         </div>
       </div>
       <div class="field" style="margin-top:12px">
@@ -1811,8 +1805,8 @@ function finalizarReg(){
     assinatura:sigCliente,assinaturaOp:sigOperador,
     geradoresReg,
     heOperador:heO,valorHEOperador:valHEop,heMaquina:heM,totalHoras:totH,
-    refeicoes:(document.getElementById('op-ref1')?.checked?1:0)+(document.getElementById('op-ref2')?.checked?1:0),
-    valorRefeicao:((document.getElementById('op-ref1')?.checked?1:0)+(document.getElementById('op-ref2')?.checked?1:0))*25,
+    refeicoes:refStepperVal('op-ref'),
+    valorRefeicao:refStepperVal('op-ref')*25,
     status:'rascunho',
     criadoEm:new Date().toISOString()
   };
@@ -1955,15 +1949,11 @@ function editarHERascunho(regId){
         </div>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:14px">
-        <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Refeições</div>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:6px">
-          <input type="checkbox" id="ehr-ref1" ${(r.refeicoes||0)>=1?'checked':''}/>
-          Refeição 1
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
-          <input type="checkbox" id="ehr-ref2" ${(r.refeicoes||0)>=2?'checked':''}/>
-          Refeição 2
-        </label>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:8px">🍽 Refeições</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          ${refStepperHTML('ehr-ref',r.refeicoes||0)}
+          <span style="font-size:12px;color:var(--dim)">refeição(ões) · R$ 25,00 cada</span>
+        </div>
       </div>
       <div style="display:flex;gap:10px">
         <button onclick="document.getElementById('modal-he-rasc').remove()" style="flex:1;padding:11px;background:var(--dark);border:1px solid var(--border);color:var(--dim);border-radius:10px;font-size:13px;cursor:pointer">Cancelar</button>
@@ -1998,8 +1988,6 @@ function salvarHERascunho(regId){
   const cedoAtivo=document.getElementById('ehr-cedo')?.checked||false;
   const cedoIni=cedoAtivo?(document.getElementById('ehr-cedo-ini')?.value||''):'';
   const cedoFim=cedoAtivo?(document.getElementById('ehr-cedo-fim')?.value||''):'';
-  const ref1=document.getElementById('ehr-ref1')?.checked||false;
-  const ref2=document.getElementById('ehr-ref2')?.checked||false;
   // Recalcula HE
   const iM=toMin(ini),fM=toMin(fim);
   let heO=(fM>iM?fM-iM:fM+1440-iM)/60;
@@ -2019,7 +2007,7 @@ function salvarHERascunho(regId){
   r.heCedo=heCedo;
   r.heOperador=heO;
   r.valorHEOperador=heO*_heValor;
-  r.refeicoes=(ref1?1:0)+(ref2?1:0);
+  r.refeicoes=refStepperVal('ehr-ref');
   r.valorRefeicao=r.refeicoes*25;
   document.getElementById('modal-he-rasc')?.remove();
   DB.set('sos_registros',registros);
@@ -2549,13 +2537,9 @@ function editarHETimeReg(regId){
       <div id="het-he-preview" style="font-size:12px;color:var(--yellow);margin-top:6px;min-height:16px"></div>
 
       <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">🍽 Refeições</div>
-      <div style="display:flex;gap:16px;margin-bottom:4px">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-          <input type="checkbox" id="het-ref1" ${(r.refeicoes||0)>=1?'checked':''} style="width:16px;height:16px;accent-color:var(--blue)"/> Refeição 1 (R$25)
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-          <input type="checkbox" id="het-ref2" ${(r.refeicoes||0)>=2?'checked':''} style="width:16px;height:16px;accent-color:var(--blue)"/> Refeição 2 (R$25)
-        </label>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+        ${refStepperHTML('het-ref',r.refeicoes||0)}
+        <span style="font-size:12px;color:var(--dim)">refeição(ões) · R$ 25,00 cada</span>
       </div>
 
       <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">📍 Identificação</div>
@@ -2625,9 +2609,7 @@ function salvarHETimeReg(regId){
   delete r.valorHEOperador;
 
   // Refeições
-  const ref1=document.getElementById('het-ref1')?.checked?1:0;
-  const ref2=document.getElementById('het-ref2')?.checked?1:0;
-  r.refeicoes=ref1+ref2;
+  r.refeicoes=refStepperVal('het-ref');
   r.valorRefeicao=r.refeicoes*25;
 
   // Identificação
@@ -3105,15 +3087,9 @@ function editarRegistroAdmin(regId){
       </div>
 
       <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">🍽 Refeições</div>
-      <div style="display:flex;gap:16px;margin-bottom:4px">
-        <div style="display:flex;align-items:center;gap:6px">
-          <input type="checkbox" id="ead-ref1" ${(r.refeicoes||0)>=1?'checked':''} style="width:16px;height:16px;accent-color:var(--blue)"/>
-          <label for="ead-ref1" style="font-size:12px;cursor:pointer">Refeição 1 (R$25)</label>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <input type="checkbox" id="ead-ref2" ${(r.refeicoes||0)>=2?'checked':''} style="width:16px;height:16px;accent-color:var(--blue)"/>
-          <label for="ead-ref2" style="font-size:12px;cursor:pointer">Refeição 2 (R$25)</label>
-        </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+        ${refStepperHTML('ead-ref',r.refeicoes||0)}
+        <span style="font-size:12px;color:var(--dim)">refeição(ões) · R$ 25,00 cada</span>
       </div>
 
       <div class="field" style="margin-top:14px"><label>Observações</label><textarea id="ead-obs" rows="3" placeholder="Ocorrências, anotações...">${r.obs||''}</textarea></div>
@@ -3202,9 +3178,7 @@ function salvarRegistroAdmin(regId){
   delete r.valorHEOperador;
 
   // Refeições
-  const ref1=document.getElementById('ead-ref1')?.checked?1:0;
-  const ref2=document.getElementById('ead-ref2')?.checked?1:0;
-  r.refeicoes=ref1+ref2;
+  r.refeicoes=refStepperVal('ead-ref');
   r.valorRefeicao=r.refeicoes*25;
 
   // Observações
@@ -3509,13 +3483,9 @@ function loadHEAvulsa(){
     </div>
 
     <div style="font-weight:700;font-size:13px;color:var(--text);margin:12px 0 8px">🍽 Refeições</div>
-    <div style="display:flex;gap:16px;margin-bottom:14px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-        <input type="checkbox" id="hav-ref1" style="accent-color:var(--blue);width:16px;height:16px"/> Refeição 1 (R$25)
-      </label>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-        <input type="checkbox" id="hav-ref2" style="accent-color:var(--blue);width:16px;height:16px"/> Refeição 2 (R$25)
-      </label>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+      ${refStepperHTML('hav-ref',0)}
+      <span style="font-size:12px;color:var(--dim)">refeição(ões) · R$ 25,00 cada</span>
     </div>
 
     <div class="field"><label>Observações</label><textarea id="hav-obs" rows="2" placeholder="Anotações adicionais..."></textarea></div>
@@ -3568,9 +3538,7 @@ function salvarHEAvulsa(){
   if(!motivo){showToast('Selecione o motivo da HE.','err');return;}
   const iM=toMin(ini),fM=toMin(fim);
   const heOperador=(fM>iM?fM-iM:fM+1440-iM)/60;
-  const ref1=document.getElementById('hav-ref1')?.checked?1:0;
-  const ref2=document.getElementById('hav-ref2')?.checked?1:0;
-  const refeicoes=ref1+ref2;
+  const refeicoes=refStepperVal('hav-ref');
   const u=usuarios.find(u=>u.id===sessaoAtual.id);
   const valorHora=(u&&u.heValor>0)?u.heValor:config.heValor;
   const reg={
@@ -3677,6 +3645,26 @@ function loadHistorico(){
 // UTILS
 // ════════════════════════════════════════
 function toMin(t){if(!t) return 0;const[h,m]=t.split(':').map(Number);return h*60+m;}
+// Seletor de refeições +/−: gera HTML com input hidden + botões
+function refStepperHTML(id,val){
+  val=Math.min(2,Math.max(0,parseInt(val)||0));
+  return `<div style="display:flex;align-items:center;gap:0;background:var(--dark);border:1px solid var(--border);border-radius:10px;padding:4px 8px;width:fit-content">
+    <button type="button" onclick="refStep('${id}',-1)" style="background:none;border:none;color:var(--dim);font-size:20px;line-height:1;cursor:pointer;padding:0 8px 2px;font-weight:300" title="Remover refeição">−</button>
+    <span id="${id}-lbl" style="font-size:14px;font-weight:700;color:var(--fg);min-width:16px;text-align:center">${val}</span>
+    <button type="button" onclick="refStep('${id}',1)" style="background:none;border:none;color:var(--dim);font-size:20px;line-height:1;cursor:pointer;padding:0 8px 2px;font-weight:300" title="Adicionar refeição">+</button>
+    <input type="hidden" id="${id}" value="${val}"/>
+  </div>`;
+}
+function refStep(id,delta){
+  const el=document.getElementById(id);
+  const lbl=document.getElementById(id+'-lbl');
+  if(!el||!lbl) return;
+  let v=Math.min(2,Math.max(0,(parseInt(el.value)||0)+delta));
+  el.value=v;
+  lbl.textContent=v;
+  lbl.style.color=v>0?'var(--green)':'var(--fg)';
+}
+function refStepperVal(id){return Math.min(2,Math.max(0,parseInt(document.getElementById(id)?.value)||0));}
 function fmtData(d){if(!d) return '';const[y,m,day]=d.split('-');return`${day}/${m}/${String(y).slice(-2)}`;}
 function mascaraTel(el){
   let v=el.value.replace(/\D/g,'').substring(0,11);
