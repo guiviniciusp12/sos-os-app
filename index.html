@@ -3283,7 +3283,7 @@ function gerarPDFOperador(){
 
   const linhas=regsOp.map((r,i)=>{
     const d=r.data||'';
-    const dt=d?`${d.slice(8,10)}/${d.slice(5,7)}/${d.slice(2,4)}`:'—';
+    const dt=d?`${d.slice(8,10)}/${d.slice(5,7)}`:'—';
     const dia=d?diaSemana(d):'';
     const local=(r.local||r.cliente||'').toUpperCase()||'—';
     const evento=(r.evento||'').toUpperCase()||'—';
@@ -3390,7 +3390,7 @@ function gerarPDFOperador(){
 <!-- Tabela de registros -->
 <table class="tbl-main" style="margin-bottom:0">
   <colgroup>
-    <col style="width:62px"/><col style="width:62px"/><col style="width:auto"/>
+    <col style="width:46px"/><col style="width:62px"/><col style="width:auto"/>
     <col style="width:auto"/><col style="width:56px"/>
     <col style="width:56px"/><col style="width:56px"/>
     ${temPeriodo2?'<col style="width:56px"/><col style="width:56px"/>':''}
