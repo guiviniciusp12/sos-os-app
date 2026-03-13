@@ -3295,7 +3295,7 @@ function gerarPDFOperador(){
     const tdStyle='text-align:center';
     const p2=temPeriodo2?`<td style="${tdStyle}">${r.heIni2||'—'}</td><td style="${tdStyle}">${r.heFim2||'—'}</td>`:'';
     return `<tr style="background:${bg}">
-      <td>${dt}</td><td>${dia}</td><td>${local}</td><td>${evento}</td>
+      <td style="white-space:nowrap">${dt}</td><td>${dia}</td><td>${local}</td><td>${evento}</td>
       <td style="${tdStyle}">${os}</td>
       <td style="${tdStyle}">${e1}</td><td style="${tdStyle}">${s1}</td>
       ${p2}
@@ -3390,7 +3390,7 @@ function gerarPDFOperador(){
 <!-- Tabela de registros -->
 <table class="tbl-main" style="margin-bottom:0">
   <colgroup>
-    <col style="width:46px"/><col style="width:62px"/><col style="width:auto"/>
+    <col style="width:54px"/><col style="width:62px"/><col style="width:auto"/>
     <col style="width:auto"/><col style="width:56px"/>
     <col style="width:56px"/><col style="width:56px"/>
     ${temPeriodo2?'<col style="width:56px"/><col style="width:56px"/>':''}
