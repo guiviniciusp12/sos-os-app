@@ -3476,11 +3476,29 @@ function loadHEAvulsa(){
     <div class="field"><label>Evento / Obra</label><input type="text" id="hav-evento" placeholder="Ex: Rock in Rio, Casamento Silva..." maxlength="80"/></div>
 
     <div style="font-weight:700;font-size:13px;color:var(--text);margin:12px 0 8px">📋 Motivo da HE</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
       ${['Desmontagem','Ajudar a operar','Abastecer','Munkar'].map(m=>`
       <label style="display:flex;align-items:center;gap:8px;background:var(--dark);border-radius:8px;padding:10px;cursor:pointer;font-size:13px">
         <input type="radio" name="hav-motivo" value="${m}" style="accent-color:var(--blue);width:16px;height:16px"/> ${m}
       </label>`).join('')}
+      <label style="display:flex;align-items:center;gap:8px;background:var(--dark);border-radius:8px;padding:10px;cursor:pointer;font-size:13px;grid-column:1/-1" onclick="document.getElementById('hav-motivo-outro-wrap').style.display=this.querySelector('input').checked?'none':'block'">
+        <input type="radio" name="hav-motivo" value="__outro__" style="accent-color:var(--blue);width:16px;height:16px" onchange="document.getElementById('hav-motivo-outro-wrap').style.display='block';document.getElementById('hav-motivo-outro').focus()"/> Outro (descreva)
+      </label>
+    </div>
+    <div id="hav-motivo-outro-wrap" style="display:none;margin-bottom:12px">
+      <input type="text" id="hav-motivo-outro" placeholder="Descreva o motivo da HE..." maxlength="100" style="width:100%;padding:10px 12px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:13px"/>
+    </div>
+
+    <div style="font-weight:700;font-size:13px;color:var(--text);margin:12px 0 8px">🏢 Chegou mais cedo na empresa?</div>
+    <div style="background:var(--dark);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;margin-bottom:0">
+        <input type="checkbox" id="hav-cedo" style="width:16px;height:16px;accent-color:var(--blue)" onchange="document.getElementById('hav-cedo-fields').style.display=this.checked?'grid':'none'"/>
+        Sim, cheguei antes do horário normal
+      </label>
+      <div id="hav-cedo-fields" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+        <div class="field" style="margin:0"><label style="font-size:11px">Entrada cedo</label><input type="time" id="hav-cedo-ini"/></div>
+        <div class="field" style="margin:0"><label style="font-size:11px">Saída cedo</label><input type="time" id="hav-cedo-fim"/></div>
+      </div>
     </div>
 
     <div style="font-weight:700;font-size:13px;color:var(--text);margin:12px 0 8px">🍽 Refeições</div>
@@ -3532,13 +3550,22 @@ function salvarHEAvulsa(){
   const local=document.getElementById('hav-local')?.value?.trim();
   const evento=document.getElementById('hav-evento')?.value?.trim();
   const motivoEl=document.querySelector('input[name="hav-motivo"]:checked');
-  const motivo=motivoEl?.value||'';
+  const motivoRaw=motivoEl?.value||'';
+  const motivo=motivoRaw==='__outro__'?(document.getElementById('hav-motivo-outro')?.value?.trim()||''):motivoRaw;
   if(!data){showToast('Informe a data.','err');return;}
   if(!ini||!fim){showToast('Informe início e fim do período.','err');return;}
   if(!local){showToast('Informe o local de trabalho.','err');return;}
-  if(!motivo){showToast('Selecione o motivo da HE.','err');return;}
+  if(!motivoRaw){showToast('Selecione o motivo da HE.','err');return;}
+  if(motivoRaw==='__outro__'&&!motivo){showToast('Descreva o motivo da HE.','err');return;}
+  // Chegou cedo
+  const cedoAtivo=document.getElementById('hav-cedo')?.checked||false;
+  const cedoIni=cedoAtivo?(document.getElementById('hav-cedo-ini')?.value||''):'';
+  const cedoFim=cedoAtivo?(document.getElementById('hav-cedo-fim')?.value||''):'';
+  let heCedo=0;
+  if(cedoAtivo&&cedoIni&&cedoFim){const cI=toMin(cedoIni),cF=toMin(cedoFim);heCedo=(cF>cI?cF-cI:cF+1440-cI)/60;}
   const iM=toMin(ini),fM=toMin(fim);
-  const heOperador=(fM>iM?fM-iM:fM+1440-iM)/60;
+  const heBase=(fM>iM?fM-iM:fM+1440-iM)/60;
+  const heOperador=heBase+heCedo;
   const refeicoes=refStepperVal('hav-ref');
   const u=usuarios.find(u=>u.id===sessaoAtual.id);
   const valorHora=(u&&u.heValor>0)?u.heValor:config.heValor;
@@ -3556,6 +3583,10 @@ function salvarHEAvulsa(){
     data,
     heIni:ini,
     heFim:fim,
+    chegouCedo:cedoAtivo,
+    cedoIni,
+    cedoFim,
+    heCedo,
     heOperador,
     valorHEOperador:heOperador*valorHora,
     refeicoes,
