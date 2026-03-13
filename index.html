@@ -2453,13 +2453,155 @@ function loadHE(){
   const mesAtual=new Date().toISOString().slice(0,7);
   el.innerHTML=`
   <div class="card">
-    <div class="card-title">HE Time — Horas Extra por Funcionário</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="card-title" style="margin:0">HE Time — Horas Extra por Funcionário</div>
+      <button class="btn btn-primary btn-sm" style="width:auto" onclick="abrirModalAdicionarHE()">+ Lançar HE</button>
+    </div>
     <div class="grid2" style="align-items:flex-end">
       <div class="field"><label>Mês/Ano</label><input type="month" id="he-mes" value="${mesAtual}"/></div>
-      <button class="btn btn-primary btn-sm" style="width:auto;margin-bottom:4px" onclick="gerarHE()">Calcular</button>
+      <button class="btn btn-ghost btn-sm" style="width:auto;margin-bottom:4px" onclick="gerarHE()">Calcular</button>
     </div>
   </div>
   <div id="he-out"></div>`;
+  gerarHE();
+}
+
+function abrirModalAdicionarHE(){
+  document.getElementById('modal-add-he-admin')?.remove();
+  const operadores=usuarios.filter(u=>u.perfil==='operador');
+  const hoje=new Date().toISOString().split('T')[0];
+  const modal=document.createElement('div');
+  modal.id='modal-add-he-admin';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9990;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML=`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:420px;width:100%;padding:20px;max-height:92vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-weight:700;font-size:15px">➕ Lançar HE de Colaborador</div>
+        <button onclick="document.getElementById('modal-add-he-admin').remove()" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer">×</button>
+      </div>
+
+      <div class="field">
+        <label>Colaborador</label>
+        <select id="ahe-op" style="width:100%;padding:10px 12px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:13px">
+          <option value="">Selecione o colaborador...</option>
+          ${operadores.map(u=>`<option value="${u.id}">${u.nome}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="field"><label>Data</label><input type="date" id="ahe-data" value="${hoje}"/></div>
+
+      <div style="font-weight:700;font-size:13px;margin:12px 0 8px">⏰ Período de HE</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+        <div class="field" style="margin:0"><label style="font-size:11px">Início</label><input type="time" id="ahe-ini"/></div>
+        <div class="field" style="margin:0"><label style="font-size:11px">Fim</label><input type="time" id="ahe-fim"/></div>
+      </div>
+      <div id="ahe-preview" style="font-size:12px;color:var(--yellow);min-height:18px;margin-bottom:8px"></div>
+
+      <div style="background:var(--dark);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="ahe-cedo" style="width:16px;height:16px;accent-color:var(--blue)" onchange="document.getElementById('ahe-cedo-fields').style.display=this.checked?'grid':'none'"/>
+          Chegou mais cedo na empresa
+        </label>
+        <div id="ahe-cedo-fields" style="display:none;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">
+          <div class="field" style="margin:0"><label style="font-size:11px">Entrada cedo</label><input type="time" id="ahe-cedo-ini"/></div>
+          <div class="field" style="margin:0"><label style="font-size:11px">Saída cedo</label><input type="time" id="ahe-cedo-fim"/></div>
+        </div>
+      </div>
+
+      <div class="field"><label>Local de trabalho</label><input type="text" id="ahe-local" placeholder="Ex: Galpão, Parque..." maxlength="80"/></div>
+      <div class="field"><label>Evento / Obra</label><input type="text" id="ahe-evento" placeholder="Ex: Rock in Rio..." maxlength="80"/></div>
+
+      <div style="font-weight:700;font-size:13px;margin:12px 0 8px">📋 Motivo da HE</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        ${['Desmontagem','Ajudar a operar','Abastecer','Munkar'].map(m=>`
+        <label style="display:flex;align-items:center;gap:8px;background:var(--dark2,var(--dark));border-radius:8px;padding:10px;cursor:pointer;font-size:13px">
+          <input type="radio" name="ahe-motivo" value="${m}" style="accent-color:var(--blue);width:16px;height:16px"/> ${m}
+        </label>`).join('')}
+        <label style="display:flex;align-items:center;gap:8px;background:var(--dark2,var(--dark));border-radius:8px;padding:10px;cursor:pointer;font-size:13px;grid-column:1/-1">
+          <input type="radio" name="ahe-motivo" value="__outro__" style="accent-color:var(--blue);width:16px;height:16px" onchange="document.getElementById('ahe-motivo-outro-wrap').style.display='block';document.getElementById('ahe-motivo-outro').focus()"/> Outro (descreva)
+        </label>
+      </div>
+      <div id="ahe-motivo-outro-wrap" style="display:none;margin-bottom:12px">
+        <input type="text" id="ahe-motivo-outro" placeholder="Descreva o motivo..." maxlength="100" style="width:100%;padding:10px 12px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:13px"/>
+      </div>
+
+      <div style="font-weight:700;font-size:13px;margin:12px 0 8px">🍽 Refeições</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        ${refStepperHTML('ahe-ref',0)}
+        <span style="font-size:12px;color:var(--dim)">refeição(ões) · R$ 25,00 cada</span>
+      </div>
+
+      <div class="field"><label>Observações</label><textarea id="ahe-obs" rows="2" placeholder="Anotações..."></textarea></div>
+
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button onclick="document.getElementById('modal-add-he-admin').remove()" style="flex:1;padding:12px;background:var(--dark);border:1px solid var(--border);color:var(--dim);border-radius:10px;font-size:13px;cursor:pointer">Cancelar</button>
+        <button onclick="salvarNovaHEAdmin()" style="flex:1;padding:12px;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);color:#818cf8;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">💾 Salvar HE</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  // Preview dinâmico
+  const updPrev=()=>{
+    const ini=document.getElementById('ahe-ini')?.value;
+    const fim=document.getElementById('ahe-fim')?.value;
+    const prev=document.getElementById('ahe-preview');
+    if(!prev) return;
+    if(ini&&fim){const iM=toMin(ini),fM=toMin(fim);const h=(fM>iM?fM-iM:fM+1440-iM)/60;prev.textContent=`⏱ ${fmtHE(h)} de HE`;}
+    else prev.textContent='';
+  };
+  document.getElementById('ahe-ini')?.addEventListener('change',updPrev);
+  document.getElementById('ahe-fim')?.addEventListener('change',updPrev);
+}
+
+function salvarNovaHEAdmin(){
+  const opId=document.getElementById('ahe-op')?.value;
+  const data=document.getElementById('ahe-data')?.value;
+  const ini=document.getElementById('ahe-ini')?.value;
+  const fim=document.getElementById('ahe-fim')?.value;
+  const local=document.getElementById('ahe-local')?.value?.trim()||'';
+  const evento=document.getElementById('ahe-evento')?.value?.trim()||'';
+  const motivoRaw=document.querySelector('input[name="ahe-motivo"]:checked')?.value||'';
+  const motivo=motivoRaw==='__outro__'?(document.getElementById('ahe-motivo-outro')?.value?.trim()||''):motivoRaw;
+  if(!opId){showToast('Selecione o colaborador.','err');return;}
+  if(!data){showToast('Informe a data.','err');return;}
+  if(!ini||!fim){showToast('Informe o início e fim da HE.','err');return;}
+  if(!motivoRaw){showToast('Selecione o motivo da HE.','err');return;}
+  if(motivoRaw==='__outro__'&&!motivo){showToast('Descreva o motivo da HE.','err');return;}
+  const cedoAtivo=document.getElementById('ahe-cedo')?.checked||false;
+  const cedoIni=cedoAtivo?(document.getElementById('ahe-cedo-ini')?.value||''):'';
+  const cedoFim=cedoAtivo?(document.getElementById('ahe-cedo-fim')?.value||''):'';
+  let heCedo=0;
+  if(cedoAtivo&&cedoIni&&cedoFim){const cI=toMin(cedoIni),cF=toMin(cedoFim);heCedo=(cF>cI?cF-cI:cF+1440-cI)/60;}
+  const iM=toMin(ini),fM=toMin(fim);
+  const heBase=(fM>iM?fM-iM:fM+1440-iM)/60;
+  const heOperador=heBase+heCedo;
+  const refeicoes=refStepperVal('ahe-ref');
+  const op=usuarios.find(u=>u.id===opId);
+  const valorHora=(op&&op.heValor>0)?op.heValor:config.heValor;
+  const reg={
+    id:'hav_'+Date.now(),
+    heAvulsa:true,
+    osId:null,
+    osNum:'HE Avulsa',
+    cliente:'—',
+    evento,local,motivoHE:motivo,
+    operadorId:opId,
+    operadorNome:op?.nome||'',
+    data,heIni:ini,heFim:fim,
+    chegouCedo:cedoAtivo,cedoIni,cedoFim,heCedo,
+    heOperador,valorHEOperador:heOperador*valorHora,
+    refeicoes,valorRefeicao:refeicoes*25,
+    obs:document.getElementById('ahe-obs')?.value||'',
+    heMaquina:0,totalHoras:0,geradoresReg:[],
+    status:'enviado',
+    lancadoPorAdmin:true,
+    lancadoPor:sessaoAtual.nome,
+    criadoEm:new Date().toISOString()
+  };
+  registros.push(reg);
+  fbUpdate('registros/'+reg.id,reg).catch(()=>{});
+  DB.set('sos_registros',registros);
+  document.getElementById('modal-add-he-admin')?.remove();
+  showToast(`HE de ${op?.nome||'colaborador'} registrada!`);
   gerarHE();
 }
 
