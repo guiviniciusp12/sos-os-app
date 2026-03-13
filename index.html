@@ -1873,15 +1873,24 @@ function _renderResumoOS(){
     </div>`).join('');
 
   const diasRascunhoHTML=rascunhos.sort((a,b)=>a.data.localeCompare(b.data)).map(r=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
-      <div>
-        <strong>${fmtData(r.data)}</strong>
-        ${r.geradoresReg&&r.geradoresReg.length?
-          r.geradoresReg.filter(g=>!g.standby||g.rodou).map(g=>`<span style="font-size:11px;color:var(--dim);margin-left:6px">${g.potencia||'G'} ${g.part}→${g.par}</span>`).join('')
-          :`<span style="font-size:11px;color:var(--dim);margin-left:6px">${r.partida}→${r.parada}</span>`}
-        ${r.heOperador>0?`<span style="font-size:11px;color:var(--yellow);margin-left:6px">HE ${fmtHE(r.heOperador)}</span>`:''}
+    <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <strong>${fmtData(r.data)}</strong>
+          ${r.geradoresReg&&r.geradoresReg.length?
+            r.geradoresReg.filter(g=>!g.standby||g.rodou).map(g=>`<span style="font-size:11px;color:var(--dim);margin-left:6px">${g.potencia||'G'} ${g.part}→${g.par}</span>`).join('')
+            :`<span style="font-size:11px;color:var(--dim);margin-left:6px">${r.partida}→${r.parada}</span>`}
+          ${r.heOperador>0?`<span style="font-size:11px;color:var(--yellow);margin-left:6px">HE ${fmtHE(r.heOperador)}</span>`:''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button onclick="editarHERascunho('${r.id}')" style="background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#818cf8;border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer" title="Editar HE deste dia">✏️ HE</button>
+          <button onclick="excluirRascunho('${r.id}')" style="background:none;border:none;color:var(--red-light);font-size:16px;cursor:pointer;padding:0 4px" title="Remover este dia">×</button>
+        </div>
       </div>
-      <button onclick="excluirRascunho('${r.id}')" style="background:none;border:none;color:var(--red-light);font-size:16px;cursor:pointer;padding:0 4px" title="Remover este dia">×</button>
+      <div style="margin-top:4px;font-size:11px;color:var(--dim)">
+        ${r.heIni&&r.heFim?`⏱ HE: ${r.heIni} → ${r.heFim}`:'<span style="color:#f59e0b">⚠️ HE não preenchida</span>'}
+        ${r.chegouCedo&&r.cedoIni&&r.cedoFim?` · Cedo: ${r.cedoIni}→${r.cedoFim}`:''}
+      </div>
     </div>`).join('');
 
   const faltandoHTML=diasFaltando.length?`
@@ -1911,6 +1920,114 @@ function _renderResumoOS(){
   }
 }
 
+function editarHERascunho(regId){
+  const r=registros.find(x=>x.id===regId);
+  if(!r){showToast('Registro não encontrado','err');return;}
+  const modal=document.createElement('div');
+  modal.id='modal-he-rasc';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9990;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML=`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:380px;width:100%;padding:20px;max-height:90vh;overflow-y:auto">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-weight:700;font-size:15px">✏️ Editar HE — ${fmtData(r.data)}</div>
+        <button onclick="document.getElementById('modal-he-rasc').remove()" style="background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer">×</button>
+      </div>
+      <div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:8px;padding:10px;margin-bottom:14px;font-size:12px;color:var(--dim)">
+        Preencha os horários de HE após chegar na empresa. Os dados salvos neste dia não serão perdidos.
+      </div>
+      <div class="field">
+        <label>HE Início</label>
+        <input type="time" id="ehr-ini" value="${r.heIni||''}"/>
+      </div>
+      <div class="field">
+        <label>HE Fim</label>
+        <input type="time" id="ehr-fim" value="${r.heFim||''}"/>
+      </div>
+      <div id="ehr-preview" style="font-size:12px;color:var(--yellow);min-height:18px;margin:-4px 0 10px 0"></div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:8px">
+          <input type="checkbox" id="ehr-cedo" ${r.chegouCedo?'checked':''}/>
+          Chegou cedo (antes das 08h)
+        </label>
+        <div id="ehr-cedo-fields" style="display:${r.chegouCedo?'grid':'none'};grid-template-columns:1fr 1fr;gap:8px;margin-top:6px">
+          <div class="field" style="margin:0"><label style="font-size:11px">Entrada cedo</label><input type="time" id="ehr-cedo-ini" value="${r.cedoIni||''}"/></div>
+          <div class="field" style="margin:0"><label style="font-size:11px">Saída cedo</label><input type="time" id="ehr-cedo-fim" value="${r.cedoFim||''}"/></div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Refeições</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:6px">
+          <input type="checkbox" id="ehr-ref1" ${(r.refeicoes||0)>=1?'checked':''}/>
+          Refeição 1
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+          <input type="checkbox" id="ehr-ref2" ${(r.refeicoes||0)>=2?'checked':''}/>
+          Refeição 2
+        </label>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="document.getElementById('modal-he-rasc').remove()" style="flex:1;padding:11px;background:var(--dark);border:1px solid var(--border);color:var(--dim);border-radius:10px;font-size:13px;cursor:pointer">Cancelar</button>
+        <button onclick="salvarHERascunho('${r.id}')" style="flex:1;padding:11px;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);color:#818cf8;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">💾 Salvar HE</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  // Preview dinâmico
+  function atualizarPreviewHER(){
+    const ini=document.getElementById('ehr-ini')?.value;
+    const fim=document.getElementById('ehr-fim')?.value;
+    const prev=document.getElementById('ehr-preview');
+    if(!prev) return;
+    if(ini&&fim){const iM=toMin(ini),fM=toMin(fim);const h=(fM>iM?fM-iM:fM+1440-iM)/60;prev.textContent=`⏱ ${fmtHE(h)} de HE`;}
+    else{prev.textContent='';}
+  }
+  document.getElementById('ehr-ini')?.addEventListener('change',atualizarPreviewHER);
+  document.getElementById('ehr-fim')?.addEventListener('change',atualizarPreviewHER);
+  document.getElementById('ehr-cedo')?.addEventListener('change',function(){
+    const cf=document.getElementById('ehr-cedo-fields');
+    if(cf) cf.style.display=this.checked?'grid':'none';
+  });
+  atualizarPreviewHER();
+}
+
+function salvarHERascunho(regId){
+  const r=registros.find(x=>x.id===regId);
+  if(!r){showToast('Registro não encontrado','err');return;}
+  const ini=document.getElementById('ehr-ini')?.value||'';
+  const fim=document.getElementById('ehr-fim')?.value||'';
+  if(!ini||!fim){showToast('Preencha o horário de início e fim da HE','err');return;}
+  const cedoAtivo=document.getElementById('ehr-cedo')?.checked||false;
+  const cedoIni=cedoAtivo?(document.getElementById('ehr-cedo-ini')?.value||''):'';
+  const cedoFim=cedoAtivo?(document.getElementById('ehr-cedo-fim')?.value||''):'';
+  const ref1=document.getElementById('ehr-ref1')?.checked||false;
+  const ref2=document.getElementById('ehr-ref2')?.checked||false;
+  // Recalcula HE
+  const iM=toMin(ini),fM=toMin(fim);
+  let heO=(fM>iM?fM-iM:fM+1440-iM)/60;
+  let heCedo=0;
+  if(cedoAtivo&&cedoIni&&cedoFim){
+    const cI=toMin(cedoIni),cF=toMin(cedoFim);
+    heCedo=(cF>cI?cF-cI:cF+1440-cI)/60;
+  }
+  heO+=heCedo;
+  const _opUser=usuarios.find(u=>u.id===r.operadorId);
+  const _heValor=(_opUser&&_opUser.heValor>0)?_opUser.heValor:config.heValor;
+  r.heIni=ini;
+  r.heFim=fim;
+  r.chegouCedo=cedoAtivo;
+  r.cedoIni=cedoIni;
+  r.cedoFim=cedoFim;
+  r.heCedo=heCedo;
+  r.heOperador=heO;
+  r.valorHEOperador=heO*_heValor;
+  r.refeicoes=(ref1?1:0)+(ref2?1:0);
+  r.valorRefeicao=r.refeicoes*25;
+  document.getElementById('modal-he-rasc')?.remove();
+  DB.set('sos_registros',registros);
+  fbUpdate('registros/'+r.id,r).catch(()=>{});
+  _renderResumoOS();
+  showToast('HE atualizada!');
+}
+
 function excluirRascunho(regId){
   if(!confirm('Remover este dia do registro?')) return;
   registros=registros.filter(r=>r.id!==regId);
@@ -1923,7 +2040,45 @@ function excluirRascunho(regId){
 function enviarParaAdmin(){
   const rascunhos=registros.filter(r=>r.osId===opOS?.id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho');
   if(!rascunhos.length){alert('Nenhum dia registrado para enviar.');return;}
-  if(!confirm(`Enviar ${rascunhos.length} dia${rascunhos.length!==1?'s':''} para o administrativo?\n\nApós o envio você não poderá alterar os registros.`)) return;
+  // Verifica se algum rascunho está sem HE preenchida
+  const semHE=rascunhos.filter(r=>!r.heIni||!r.heFim);
+  // Modal de confirmação com aviso
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML=`
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:380px;width:100%;padding:24px">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:40px;margin-bottom:8px">⚠️</div>
+        <div style="font-weight:700;font-size:17px;color:var(--fg);margin-bottom:6px">Atenção antes de enviar!</div>
+        <div style="font-size:13px;color:var(--dim);line-height:1.5">Após o envio ao administrativo, <strong>você não terá mais acesso</strong> para alterar nenhuma informação desta OS.</div>
+      </div>
+      ${semHE.length?`
+      <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:12px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:#f87171;margin-bottom:4px">⚠️ HE não preenchida:</div>
+        ${semHE.map(r=>`<div style="font-size:12px;color:var(--dim)">• ${fmtData(r.data)} — horário de HE em branco</div>`).join('')}
+        <div style="font-size:11px;color:var(--dim);margin-top:6px">Use o botão ✏️ HE para completar antes de enviar.</div>
+      </div>`:''}
+      <div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.2);border-radius:10px;padding:12px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:6px">📋 Verifique antes de confirmar:</div>
+        ${rascunhos.map(r=>`
+          <div style="font-size:12px;color:var(--dim);padding:3px 0">
+            <strong>${fmtData(r.data)}</strong>
+            ${r.heIni&&r.heFim?`<span style="color:var(--yellow)"> · HE: ${r.heIni}→${r.heFim}</span>`:`<span style="color:#f87171"> · sem HE</span>`}
+            ${r.heOperador>0?` · ${fmtHE(r.heOperador)}`:''}
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:12px;background:var(--dark);border:1px solid var(--border);color:var(--dim);border-radius:10px;font-size:14px;cursor:pointer">← Voltar e revisar</button>
+        <button id="btn-confirmar-envio" onclick="confirmarEnvioAdmin()" style="flex:1;padding:12px;background:rgba(16,185,129,.2);border:1px solid rgba(16,185,129,.4);color:var(--green);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer">✅ Confirmar envio</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+function confirmarEnvioAdmin(){
+  // Remove modal
+  document.querySelectorAll('[style*="position:fixed"][style*="z-index:9999"]').forEach(el=>el.remove());
+  const rascunhos=registros.filter(r=>r.osId===opOS?.id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho');
+  if(!rascunhos.length) return;
   rascunhos.forEach(r=>{r.status='enviado';});
   const btnEnv=document.getElementById('btn-enviar-admin');
   if(btnEnv){btnEnv.disabled=true;btnEnv.textContent='Enviando...';}
