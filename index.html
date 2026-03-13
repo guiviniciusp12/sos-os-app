@@ -3047,7 +3047,7 @@ function loadRelatorioHE(){
       <div class="card-title" style="margin:0">📊 Relatório HE</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <input type="month" id="rhe-mes" value="${hoje}" onchange="renderRelatorioHE()" style="padding:8px 10px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:13px"/>
-        <button onclick="gerarPDFRelatorioHE()" style="padding:8px 14px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.35);color:#f87171;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📄 PDF Geral</button>
+        <button onclick="abrirLiveDashboardHE()" style="padding:8px 14px;background:rgba(32,99,173,.15);border:1px solid rgba(32,99,173,.35);color:#60a5fa;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">📊 Live Dashboard</button>
         <button onclick="abrirModalPDFOperador()" style="padding:8px 14px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.35);color:#818cf8;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">👷 PDF por Operador</button>
       </div>
     </div>
@@ -3423,6 +3423,424 @@ ${descontosHTML}
   win.document.write(html);
   win.document.close();
   setTimeout(()=>win.print(),600);
+}
+
+function abrirLiveDashboardHE(){
+  const mes=document.getElementById('rhe-mes')?.value||new Date().toISOString().slice(0,7);
+  const [ano,mesN]=mes.split('-');
+  const nomeMes=new Date(parseInt(ano),parseInt(mesN)-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+
+  // ── coleta dados do mês ──────────────────────────────────────────────
+  const regsDoMes=registros.filter(r=>r.data&&r.data.startsWith(mes));
+  const operadores=usuarios.filter(u=>u.perfil==='operador');
+
+  const dadosOp=operadores.map(u=>{
+    const regsOp=regsDoMes.filter(r=>r.operadorId===u.id&&r.heOperador>0);
+    const totalHE=regsOp.reduce((a,r)=>a+(r.heOperador||0),0);
+    const totalRef=regsOp.reduce((a,r)=>a+(r.refeicoes||0),0);
+    const eventos=regsOp.filter(r=>r.local&&r.local!=='SOS Energia').length;
+    const diasSOS=regsOp.filter(r=>r.local==='SOS Energia').length;
+    const chegouCedo=regsOp.filter(r=>r.chegouCedo).length;
+    const valorHora=(u.heValor&&u.heValor>0)?u.heValor:config.heValor;
+    const valorHE=totalHE*valorHora;
+    const valorRef=totalRef*25;
+    const chaveDesc=`${u.id}_${mes}`;
+    const descs=(descontosHE[chaveDesc]||[]);
+    const desc=descs.reduce((a,d)=>a+(d.valor||0),0);
+    const liquido=Math.max(0,valorHE+valorRef-desc);
+    const heCedo=regsOp.reduce((a,r)=>a+(r.heCedo||0),0);
+    return {id:u.id,nome:u.nome,totalHE,totalRef,eventos,diasSOS,chegouCedo,valorHE,valorRef,desc,liquido,regs:regsOp,valorHora,heCedo,descs};
+  }).filter(f=>f.totalHE>0||f.eventos>0).sort((a,b)=>b.totalHE-a.totalHE);
+
+  const totalH=dadosOp.reduce((a,f)=>a+f.totalHE,0);
+  const totalV=dadosOp.reduce((a,f)=>a+f.liquido,0);
+  const totalDesc=dadosOp.reduce((a,f)=>a+f.desc,0);
+  const totalRef=dadosOp.reduce((a,f)=>a+f.totalRef,0);
+  const totalEv=dadosOp.reduce((a,f)=>a+f.eventos,0);
+  const ativos=dadosOp.length;
+
+  if(!ativos){alert('Nenhum operador com HE em '+nomeMes+'.');return;}
+
+  // ── helpers SVG ──────────────────────────────────────────────────────
+  const PAL=['#3B82F6','#2063AD','#BCD6F6','#4CAF50','#FF9800','#9F7AEA','#F6AD55','#FC8181','#68D391','#63B3ED','#B794F4'];
+
+  function fmtH(n){const h=Math.floor(n),m=Math.round((n-h)*60);return h+'h'+(m>0?String(m).padStart(2,'0')+'m':'');}
+  function fmtR(n){return'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});}
+  function srt(n){return n.split(' ')[0];}
+
+  function barSVG(names,vals,fmtFn,colors,hpb){
+    hpb=hpb||26;const gap=5,lw=88,padL=2;
+    const max=Math.max(...vals,1);const W=520,plotW=W-lw-padL-90;
+    const H=names.length*(hpb+gap)+8;let s='';
+    names.forEach((n,i)=>{
+      const bw=Math.max(4,(vals[i]/max)*plotW);const y=4+i*(hpb+gap);
+      const col=Array.isArray(colors)?colors[i%colors.length]:colors;
+      s+=`<text x="${padL}" y="${y+hpb/2+4}" fill="#5A7CA0" font-size="10" font-weight="600" font-family="Montserrat,sans-serif">${n}</text>
+      <rect x="${padL+lw}" y="${y}" width="${bw}" height="${hpb}" rx="5" fill="${col}" opacity="0.88"/>
+      <text x="${padL+lw+bw+6}" y="${y+hpb/2+4}" fill="#A8C4E0" font-size="10" font-weight="700" font-family="Montserrat,sans-serif">${fmtFn(vals[i])}</text>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;">${s}</svg>`;
+  }
+
+  function donutSVG(names,vals){
+    const total=vals.reduce((a,b)=>a+b,0);
+    const cx=95,cy=95,R=72,r=42;let angle=-Math.PI/2,slices='',leg='';
+    const top=vals.map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v).slice(0,8);
+    top.forEach(({v,i},j)=>{
+      const sw=(v/total)*Math.PI*2;
+      const x1=cx+R*Math.cos(angle),y1=cy+R*Math.sin(angle);
+      angle+=sw;
+      const x2=cx+R*Math.cos(angle),y2=cy+R*Math.sin(angle);
+      const lg=sw>Math.PI?1:0;
+      const xi1=cx+r*Math.cos(angle-sw),yi1=cy+r*Math.sin(angle-sw);
+      const xi2=cx+r*Math.cos(angle),yi2=cy+r*Math.sin(angle);
+      slices+=`<path d="M ${x1} ${y1} A ${R} ${R} 0 ${lg} 1 ${x2} ${y2} L ${xi2} ${yi2} A ${r} ${r} 0 ${lg} 0 ${xi1} ${yi1} Z" fill="${PAL[i%PAL.length]}" stroke="#050B14" stroke-width="2" opacity=".9"/>`;
+      const ly=14+j*20;
+      leg+=`<rect x="205" y="${ly-9}" width="9" height="9" rx="2" fill="${PAL[i%PAL.length]}"/>
+      <text x="220" y="${ly}" fill="#A8C4E0" font-size="10" font-weight="600" font-family="Montserrat,sans-serif">${names[i].split(' ')[0]}</text>
+      <text x="340" y="${ly}" fill="#4CAF50" font-size="10" font-weight="700" font-family="Montserrat,sans-serif" text-anchor="end">${fmtR(vals[i])}</text>`;
+    });
+    return `<svg viewBox="0 0 350 195" style="width:100%;display:block;">
+      ${slices}<circle cx="${cx}" cy="${cy}" r="${r-2}" fill="#050B14"/>
+      <text x="${cx}" y="${cy-5}" text-anchor="middle" fill="#5A7CA0" font-size="8" font-weight="600" font-family="Montserrat,sans-serif">TOTAL</text>
+      <text x="${cx}" y="${cy+8}" text-anchor="middle" fill="#fff" font-size="10" font-weight="800" font-family="Montserrat,sans-serif">${fmtR(total)}</text>
+      ${leg}</svg>`;
+  }
+
+  function hBarSVG(labels,data,fmtFn,color){
+    const bh=20,gap=12,lw=52,padL=2,W=300;
+    const max=Math.max(...data,1);
+    const H=labels.length*(bh+gap)+8;let s='';
+    labels.forEach((lbl,i)=>{
+      const bw=Math.max(4,(data[i]/max)*(W-lw-padL-50));
+      const y=4+i*(bh+gap);
+      s+=`<text x="${padL}" y="${y+bh/2+4}" fill="#5A7CA0" font-size="10" font-weight="600" font-family="Montserrat,sans-serif">${lbl}</text>
+      <rect x="${padL+lw}" y="${y}" width="${bw}" height="${bh}" rx="4" fill="${color}" opacity=".85"/>
+      <text x="${padL+lw+bw+5}" y="${y+bh/2+4}" fill="#A8C4E0" font-size="9" font-weight="700" font-family="Montserrat,sans-serif">${fmtFn(data[i])}</text>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block;">${s}</svg>`;
+  }
+
+  // ── score ─────────────────────────────────────────────────────────────
+  const maxH=Math.max(...dadosOp.map(f=>f.totalHE),1);
+  const maxEv=Math.max(...dadosOp.map(f=>f.eventos),1);
+  const maxSOS=Math.max(...dadosOp.map(f=>f.diasSOS),1);
+  dadosOp.forEach(f=>{
+    f.score=Math.round((f.totalHE/maxH)*50+(f.eventos/maxEv)*30+(f.diasSOS/maxSOS)*20);
+  });
+  const byScore=[...dadosOp].sort((a,b)=>b.score-a.score);
+  const byVal=[...dadosOp].sort((a,b)=>b.liquido-a.liquido);
+  const byEv=[...dadosOp].filter(f=>f.eventos>0).sort((a,b)=>b.eventos-a.eventos);
+  const topScore=byScore[0];
+  const topVal=byVal[0];
+
+  function scoreColor(s){return s>=70?'#4CAF50':s>=40?'#FF9800':'#FF5756';}
+  function rankClass(i){return i===0?'r1':i===1?'r2':i===2?'r3':'rn';}
+  function rankLabel(i){return i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;}
+
+  const rankKPI=`
+    <div class="kpi" style="--ka:#3B82F6"><div class="ki">👥</div><div class="kl">Operadores c/ HE</div><div class="kv">${ativos}</div><div class="ks">em ${nomeMes}</div></div>
+    <div class="kpi" style="--ka:#4CAF50"><div class="ki">⏱</div><div class="kl">Total Horas Extras</div><div class="kv">${fmtH(totalH)}</div><div class="ks">média ${fmtH(totalH/ativos)}/pessoa</div></div>
+    <div class="kpi" style="--ka:#FF9800"><div class="ki">💰</div><div class="kl">Total a Pagar</div><div class="kv" style="font-size:17px">${fmtR(totalV)}</div><div class="ks">${totalDesc>0?'desc. '+fmtR(totalDesc):'sem descontos'}</div></div>
+    <div class="kpi" style="--ka:#9F7AEA"><div class="ki">📅</div><div class="kl">Eventos Externos</div><div class="kv">${totalEv}</div><div class="ks">${byEv.length>0?'top: '+srt(byEv[0].nome)+' ('+byEv[0].eventos+')':'—'}</div></div>
+    <div class="kpi" style="--ka:#F6AD55"><div class="ki">🏆</div><div class="kl">Maior Score</div><div class="kv">${topScore.score}</div><div class="ks">${srt(topScore.nome)}</div></div>`;
+
+  const insightVisao=`<strong>📊 Resumo ${nomeMes}:</strong> ${ativos} operador${ativos!==1?'es':''} com HE registrada no sistema.
+    Total de <strong>${fmtH(totalH)}</strong> em horas extras, custo líquido de <strong>${fmtR(totalV)}</strong>${totalDesc>0?' (após '+fmtR(totalDesc)+' em descontos)':''}.
+    Maior ganhador: <strong>${topVal.nome}</strong> (${fmtR(topVal.liquido)}).
+    Líder em horas: <strong>${dadosOp[0].nome}</strong> (${fmtH(dadosOp[0].totalHE)}).`;
+
+  const tableGeral=byScore.map((f,i)=>`<tr>
+    <td><span class="rk ${rankClass(i)}">${rankLabel(i)}</span></td>
+    <td style="font-weight:700;color:#fff">${f.nome}</td>
+    <td><div style="display:flex;align-items:center;gap:8px">
+      <div style="background:rgba(255,255,255,.06);border-radius:4px;height:6px;width:80px;overflow:hidden"><div style="width:${f.score}%;height:6px;border-radius:4px;background:${scoreColor(f.score)}"></div></div>
+      <span style="font-weight:800;color:${scoreColor(f.score)};font-size:12px">${f.score}</span>
+    </div></td>
+    <td style="color:#BCD6F6;font-weight:600">${fmtH(f.totalHE)}</td>
+    <td style="color:#4CAF50;font-weight:800">${fmtR(f.liquido)}</td>
+    <td style="color:#9F7AEA;font-weight:700">${f.eventos}</td>
+    <td style="color:#3B82F6;font-weight:600">${f.diasSOS}d</td>
+    <td style="color:#818cf8;font-weight:600">${f.totalRef}</td>
+  </tr>`).join('');
+
+  // ── aba empenho ───────────────────────────────────────────────────────
+  const tableEmpenho=byScore.map((f,i)=>{
+    const hpm=fmtH(f.totalHE);
+    let perfil=f.score>=70?'⭐ Destaque':f.score>=40?'✅ Regular':'⚠️ Baixo';
+    return `<tr>
+      <td><span class="rk ${rankClass(i)}">${rankLabel(i)}</span></td>
+      <td style="font-weight:700;color:#fff">${f.nome}</td>
+      <td><span style="font-weight:800;color:${scoreColor(f.score)};font-size:13px">${f.score}</span><span style="color:var(--tm);font-size:9px">/100</span></td>
+      <td style="color:#BCD6F6;font-weight:600">${hpm}</td>
+      <td style="color:#9F7AEA;font-weight:600">${f.eventos}</td>
+      <td style="color:#3B82F6;font-weight:600">${f.diasSOS}d</td>
+      <td style="color:#818cf8">${f.chegouCedo>0?'🏢 '+f.chegouCedo+'x':'—'}</td>
+      <td><span class="pill" style="background:rgba(${f.score>=70?'76,175,80':f.score>=40?'255,152,0':'255,87,86'},.15);color:${scoreColor(f.score)};border:1px solid ${scoreColor(f.score)}40">${perfil}</span></td>
+    </tr>`;
+  }).join('');
+
+  const alertasBaixo=byScore.filter(f=>f.score<30).slice(0,5);
+  const alertasAlto=byScore.filter(f=>f.score>=60).slice(0,5);
+  const alertasBaixoHTML=alertasBaixo.length
+    ?alertasBaixo.map(f=>`<div class="alerta">⚠️ <div><strong>${f.nome}</strong> — Score ${f.score}/100. ${fmtH(f.totalHE)} HE, ${f.eventos} eventos.</div></div>`).join('')
+    :'<div class="alerta alerta-g">✅ Nenhum operador com engajamento crítico.</div>';
+  const alertasAltoHTML=alertasAlto.length
+    ?alertasAlto.map(f=>`<div class="alerta alerta-g">⭐ <div><strong>${f.nome}</strong> — Score ${f.score}/100. ${fmtH(f.totalHE)} HE, ${f.eventos} eventos.</div></div>`).join('')
+    :'';
+
+  // ── aba financeiro ────────────────────────────────────────────────────
+  const totalBruto=dadosOp.reduce((a,f)=>a+f.valorHE+f.valorRef,0);
+  const custoHEmed=totalH>0?totalV/totalH:0;
+  const kpiFinHTML=`
+    <div class="kpi" style="--ka:#4CAF50"><div class="ki">💰</div><div class="kl">Total a Pagar</div><div class="kv" style="font-size:17px">${fmtR(totalV)}</div><div class="ks">líquido</div></div>
+    <div class="kpi" style="--ka:#3B82F6"><div class="ki">📊</div><div class="kl">Total Bruto</div><div class="kv" style="font-size:17px">${fmtR(totalBruto)}</div><div class="ks">antes de descontos</div></div>
+    <div class="kpi" style="--ka:#FF9800"><div class="ki">⏱</div><div class="kl">Custo por HE (média)</div><div class="kv" style="font-size:17px">${fmtR(custoHEmed)}</div><div class="ks">R$/hora extra</div></div>
+    <div class="kpi" style="--ka:#FF5756"><div class="ki">🔻</div><div class="kl">Total Descontos</div><div class="kv" style="font-size:17px">${fmtR(totalDesc)}</div><div class="ks">${totalDesc>0?dadosOp.filter(f=>f.desc>0).length+' operador(es)':'nenhum'}</div></div>
+    <div class="kpi" style="--ka:#9F7AEA"><div class="ki">🍽</div><div class="kl">Refeições</div><div class="kv">${totalRef}</div><div class="ks">${fmtR(totalRef*25)}</div></div>`;
+
+  const tableFin=byVal.map((f,i)=>{
+    const rph=f.totalHE>0?Math.round(f.liquido/f.totalHE):'-';
+    return `<tr>
+      <td><span class="rk ${rankClass(i)}">${rankLabel(i)}</span></td>
+      <td style="font-weight:700;color:#fff">${f.nome}</td>
+      <td style="color:#BCD6F6;font-weight:600">${fmtH(f.totalHE)}</td>
+      <td style="color:#4CAF50;font-weight:700">${fmtR(f.valorHE)}</td>
+      <td style="color:#9F7AEA;font-weight:600">${f.totalRef} × R$ 25</td>
+      <td style="color:#f87171;font-weight:600">${f.desc>0?'−'+fmtR(f.desc):'—'}</td>
+      <td style="font-weight:800;color:#4CAF50;font-size:13px">${fmtR(f.liquido)}</td>
+      <td><span class="pill" style="background:rgba(32,99,173,.15);color:#BCD6F6;border:1px solid rgba(32,99,173,.25)">R$${rph}/h</span></td>
+    </tr>`;
+  }).join('');
+
+  // ── aba eventos ───────────────────────────────────────────────────────
+  const totalEvG=dadosOp.reduce((a,f)=>a+f.eventos,0);
+  const ativosEv=dadosOp.filter(f=>f.eventos>0).length;
+  const kpiEvHTML=`
+    <div class="kpi" style="--ka:#9F7AEA"><div class="ki">📅</div><div class="kl">Total Eventos</div><div class="kv">${totalEvG}</div><div class="ks">em ${nomeMes}</div></div>
+    <div class="kpi" style="--ka:#3B82F6"><div class="ki">👥</div><div class="kl">Executores</div><div class="kv">${ativosEv}</div><div class="ks">operadores</div></div>
+    <div class="kpi" style="--ka:#4CAF50"><div class="ki">🥇</div><div class="kl">Mais Eventos</div><div class="kv">${byEv.length>0?byEv[0].eventos:0}</div><div class="ks">${byEv.length>0?srt(byEv[0].nome):'—'}</div></div>
+    <div class="kpi" style="--ka:#FF9800"><div class="ki">📊</div><div class="kl">Média por Executor</div><div class="kv">${ativosEv>0?(totalEvG/ativosEv).toFixed(1):0}</div><div class="ks">eventos/operador</div></div>`;
+
+  const tableEv=byEv.length>0?byEv.map((f,i)=>`<tr>
+    <td><span class="rk ${rankClass(i)}">${rankLabel(i)}</span></td>
+    <td style="font-weight:700;color:#fff">${f.nome}</td>
+    <td style="color:#9F7AEA;font-weight:800">${f.eventos}</td>
+    <td style="color:#BCD6F6;font-weight:600">${fmtH(f.totalHE)}</td>
+    <td style="color:#4CAF50;font-weight:700">${fmtR(f.liquido)}</td>
+    <td style="color:#818cf8">${f.chegouCedo>0?'🏢 '+f.chegouCedo+'x':'—'}</td>
+  </tr>`).join(''):`<tr><td colspan="6" style="text-align:center;color:#5A7CA0;padding:20px">Nenhum evento externo registrado em ${nomeMes}</td></tr>`;
+
+  // Lista de OS/eventos do mês
+  const listaOS=regsDoMes.filter(r=>r.local&&r.local!=='SOS Energia').sort((a,b)=>a.data<b.data?-1:1).map(r=>{
+    const op=usuarios.find(u=>u.id===r.operadorId);
+    return `<tr>
+      <td style="font-size:11px;color:#A8C4E0">${r.data||'—'}</td>
+      <td style="font-weight:600;color:#fff;font-size:12px">${r.nomeOS||r.osId||'—'}</td>
+      <td style="color:#9F7AEA;font-size:12px">${r.local||'—'}</td>
+      <td style="color:#BCD6F6;font-size:12px">${op?op.nome:'—'}</td>
+      <td style="color:#4CAF50;font-weight:600;font-size:12px">${fmtH(r.heOperador||0)}</td>
+    </tr>`;
+  }).join('');
+
+  // ── HTML do dashboard ─────────────────────────────────────────────────
+  const html=`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Dashboard HE · ${nomeMes} · SOS Energia</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+:root{
+  --bg:#050B14;--bg1:#0A1626;--bg2:#0B182B;
+  --bgc:rgba(255,255,255,0.03);--bgh:rgba(255,255,255,0.055);
+  --bdr:rgba(32,99,173,0.22);--bdrl:rgba(255,255,255,0.06);
+  --acc:#2063AD;--accb:#3B82F6;--accl:#BCD6F6;--accg:rgba(32,99,173,0.28);
+  --tp:#FFFFFF;--ts:#A8C4E0;--tm:#5A7CA0;
+  --grn:#4CAF50;--org:#FF9800;--red:#FF5756;--pur:#9F7AEA;
+  --gold:#F6AD55;--silv:#CBD5E0;--bron:#C67C2D;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Montserrat',system-ui,sans-serif;background:var(--bg);color:var(--tp);min-height:100vh;background-image:radial-gradient(circle at 80% 10%,rgba(32,99,173,.10) 0%,transparent 55%);}
+header{background:linear-gradient(135deg,var(--bg1) 0%,var(--bg2) 100%);border-bottom:1px solid var(--bdr);padding:0 32px;height:68px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.hl{display:flex;align-items:center;gap:14px;}
+.logo{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--acc) 0%,#1A4A8A 100%);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;box-shadow:0 4px 16px var(--accg);}
+header h1{font-size:16px;font-weight:700;letter-spacing:-.3px;}
+header p{font-size:10px;color:var(--tm);margin-top:2px;font-weight:500;}
+.hbadge{background:linear-gradient(135deg,var(--acc) 0%,#1A4A8A 100%);color:#fff;font-size:10px;font-weight:700;padding:5px 14px;border-radius:20px;}
+.tw{background:var(--bg1);border-bottom:1px solid var(--bdr);padding:0 32px;}
+.tabs{display:flex;gap:2px;}
+.tab{padding:13px 22px;cursor:pointer;font-size:11px;font-weight:600;color:var(--tm);border-bottom:2px solid transparent;transition:all .2s;}
+.tab:hover{color:var(--accl);}
+.tab.active{color:var(--accb);border-bottom-color:var(--accb);}
+.ct{padding:28px 32px;max-width:1400px;margin:0 auto;}
+.kg{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+.kpi{background:var(--bgc);border:1px solid var(--bdr);border-radius:14px;padding:18px;position:relative;overflow:hidden;transition:border-color .2s,transform .15s;}
+.kpi:hover{border-color:var(--acc);transform:translateY(-1px);}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ka,var(--acc));}
+.kpi::after{content:'';position:absolute;top:-18px;right:-18px;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,var(--ka,var(--acc)) 0%,transparent 70%);opacity:.08;}
+.kl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--tm);margin-bottom:8px;font-weight:600;}
+.kv{font-size:22px;font-weight:800;color:var(--tp);line-height:1;letter-spacing:-.5px;}
+.ks{font-size:10px;color:var(--tm);margin-top:6px;font-weight:500;}
+.ki{position:absolute;bottom:12px;right:14px;font-size:18px;opacity:.18;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:22px;}
+.g12{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;margin-bottom:22px;}
+.card{background:var(--bgc);border:1px solid var(--bdr);border-radius:14px;padding:20px;transition:border-color .2s;}
+.card:hover{border-color:rgba(32,99,173,.35);}
+.card h3{font-size:9px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:14px;}
+.tc{background:var(--bgc);border:1px solid var(--bdr);border-radius:14px;overflow:hidden;margin-bottom:22px;}
+.th2{padding:13px 20px;border-bottom:1px solid var(--bdrl);background:linear-gradient(90deg,rgba(32,99,173,.08) 0%,transparent 100%);}
+.th2 h3{font-size:9px;font-weight:700;color:var(--tm);text-transform:uppercase;letter-spacing:1.2px;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:rgba(10,22,38,.6);padding:9px 14px;font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--tm);text-align:left;font-weight:700;}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.04);transition:background .13s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--bgh);}
+tbody td{padding:11px 14px;font-size:12px;font-weight:500;}
+.rk{width:24px;height:24px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;}
+.r1{background:rgba(246,173,85,.15);color:var(--gold);border:1px solid rgba(246,173,85,.3);}
+.r2{background:rgba(203,213,224,.1);color:var(--silv);border:1px solid rgba(203,213,224,.2);}
+.r3{background:rgba(198,124,45,.12);color:var(--bron);border:1px solid rgba(198,124,45,.25);}
+.rn{background:rgba(90,124,160,.1);color:var(--tm);border:1px solid rgba(90,124,160,.15);}
+.pill{display:inline-block;padding:3px 8px;border-radius:20px;font-size:9px;font-weight:700;}
+.stag{display:inline-flex;align-items:center;gap:8px;background:rgba(32,99,173,.12);border:1px solid var(--bdr);border-radius:8px;padding:5px 13px;font-size:10px;font-weight:700;color:var(--accl);letter-spacing:.3px;margin-bottom:18px;}
+.stag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accb);}
+.insight{background:rgba(32,99,173,.09);border:1px solid rgba(32,99,173,.25);border-radius:12px;padding:14px 18px;font-size:12px;line-height:1.6;color:var(--ts);margin-bottom:22px;}
+.insight strong{color:var(--accl);}
+.alerta{background:rgba(255,152,0,.08);border:1px solid rgba(255,152,0,.25);border-radius:10px;padding:12px 16px;font-size:11px;color:#FFB74D;display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;}
+.alerta-g{background:rgba(76,175,80,.08);border-color:rgba(76,175,80,.25);color:#81C784;}
+@media(max-width:1100px){.kg{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:800px){.kg{grid-template-columns:1fr 1fr;}.g2,.g3,.g12{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hl">
+    <div class="logo">⚡</div>
+    <div>
+      <h1>Live Dashboard · Horas Extras</h1>
+      <p>${nomeMes} · SOS Energia · Dados em tempo real</p>
+    </div>
+  </div>
+  <span class="hbadge">SOS Energia</span>
+</header>
+<div class="tw">
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('visao')">📊 Visão Geral</div>
+    <div class="tab" onclick="showTab('empenho')">🏆 Empenho</div>
+    <div class="tab" onclick="showTab('financeiro')">💰 Financeiro</div>
+    <div class="tab" onclick="showTab('eventos')">📅 Eventos</div>
+  </div>
+</div>
+
+<!-- VISÃO GERAL -->
+<div id="tab-visao"><div class="ct">
+  <div class="stag">Visão Geral · ${nomeMes}</div>
+  <div class="kg">${rankKPI}</div>
+  <div class="insight">${insightVisao}</div>
+  <div class="g2">
+    <div class="card"><h3>🏆 Ranking de Empenho (Score)</h3>
+      ${barSVG(byScore.slice(0,10).map(f=>srt(f.nome)),byScore.slice(0,10).map(f=>f.score),v=>v+'pts',byScore.slice(0,10).map(f=>scoreColor(f.score)))}
+    </div>
+    <div class="card"><h3>💰 Quem Mais Ganhou</h3>
+      ${barSVG(byVal.slice(0,10).map(f=>srt(f.nome)),byVal.slice(0,10).map(f=>f.liquido),fmtR,PAL)}
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card"><h3>⏱ Horas Extras por Operador</h3>
+      ${barSVG(dadosOp.slice(0,10).map(f=>srt(f.nome)),dadosOp.slice(0,10).map(f=>f.totalHE),fmtH,'#4CAF50')}
+    </div>
+    <div class="card"><h3>📅 Eventos Externos por Operador</h3>
+      ${byEv.length>0?barSVG(byEv.slice(0,10).map(f=>srt(f.nome)),byEv.slice(0,10).map(f=>f.eventos),v=>v+'','#9F7AEA'):'<p style="color:var(--tm);font-size:12px;padding:12px 0">Nenhum evento externo em '+nomeMes+'</p>'}
+    </div>
+  </div>
+  <div class="tc">
+    <div class="th2"><h3>Ranking Geral — ${nomeMes}</h3></div>
+    <table><thead><tr><th>#</th><th>Operador</th><th>Score</th><th>HE Total</th><th>Total a Pagar</th><th>Eventos</th><th>Dias SOS</th><th>Refeições</th></tr></thead>
+    <tbody>${tableGeral}</tbody></table>
+  </div>
+</div></div>
+
+<!-- EMPENHO -->
+<div id="tab-empenho" style="display:none"><div class="ct">
+  <div class="stag">Empenho & Performance · ${nomeMes}</div>
+  <div class="g2">
+    <div class="card"><h3>📈 Score de Dedicação</h3>
+      ${barSVG(byScore.slice(0,10).map(f=>srt(f.nome)),byScore.slice(0,10).map(f=>f.score),v=>v+'pts',byScore.slice(0,10).map(f=>scoreColor(f.score)))}
+    </div>
+    <div class="card"><h3>⏱ Horas Extras por Operador</h3>
+      ${barSVG(dadosOp.slice(0,10).map(f=>srt(f.nome)),dadosOp.slice(0,10).map(f=>f.totalHE),fmtH,'#4CAF50')}
+    </div>
+  </div>
+  <div class="tc">
+    <div class="th2"><h3>Análise de Empenho Individual</h3></div>
+    <table><thead><tr><th>#</th><th>Operador</th><th>Score</th><th>HE Total</th><th>Eventos</th><th>Dias SOS</th><th>Cedo</th><th>Perfil</th></tr></thead>
+    <tbody>${tableEmpenho}</tbody></table>
+  </div>
+  <div class="g2">
+    <div><h3 style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">⚠️ Atenção — Baixo Engajamento</h3>${alertasBaixoHTML}</div>
+    <div><h3 style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">✅ Destaques — Alto Empenho</h3>${alertasAltoHTML||'<div class="alerta alerta-g">Nenhum destaque acima de 60 pts ainda.</div>'}</div>
+  </div>
+</div></div>
+
+<!-- FINANCEIRO -->
+<div id="tab-financeiro" style="display:none"><div class="ct">
+  <div class="stag">Análise Financeira · ${nomeMes}</div>
+  <div class="kg">${kpiFinHTML}</div>
+  <div class="g12">
+    <div class="card"><h3>💰 Total Recebido por Operador</h3>
+      ${barSVG(byVal.slice(0,10).map(f=>srt(f.nome)),byVal.slice(0,10).map(f=>f.liquido),fmtR,PAL)}
+    </div>
+    <div class="card"><h3>🥧 Distribuição do Custo Total</h3>
+      ${donutSVG(byVal.map(f=>f.nome),byVal.map(f=>f.liquido))}
+    </div>
+  </div>
+  <div class="tc">
+    <div class="th2"><h3>Detalhamento Financeiro por Operador</h3></div>
+    <table><thead><tr><th>#</th><th>Operador</th><th>HE Total</th><th>Valor HE</th><th>Refeições</th><th>Descontos</th><th>Total Líquido</th><th>R$/HE</th></tr></thead>
+    <tbody>${tableFin}</tbody></table>
+  </div>
+</div></div>
+
+<!-- EVENTOS -->
+<div id="tab-eventos" style="display:none"><div class="ct">
+  <div class="stag">Análise de Eventos · ${nomeMes}</div>
+  <div class="kg">${kpiEvHTML}</div>
+  ${byEv.length>0?`<div class="g2">
+    <div class="card"><h3>📅 Eventos por Operador</h3>
+      ${barSVG(byEv.map(f=>srt(f.nome)),byEv.map(f=>f.eventos),v=>v+'',PAL,24)}
+    </div>
+    <div class="card"><h3>⏱ HE Gerada em Eventos</h3>
+      ${barSVG(byEv.map(f=>srt(f.nome)),byEv.map(f=>f.totalHE),fmtH,'#9F7AEA',24)}
+    </div>
+  </div>
+  <div class="tc">
+    <div class="th2"><h3>Ranking de Eventos — ${nomeMes}</h3></div>
+    <table><thead><tr><th>#</th><th>Operador</th><th>Eventos</th><th>HE Gerada</th><th>Total a Pagar</th><th>Chegou Cedo</th></tr></thead>
+    <tbody>${tableEv}</tbody></table>
+  </div>`:''}
+  ${listaOS?`<div class="tc">
+    <div class="th2"><h3>Lista de OS / Eventos Externos — ${nomeMes}</h3></div>
+    <table><thead><tr><th>Data</th><th>OS / Evento</th><th>Local</th><th>Operador</th><th>HE</th></tr></thead>
+    <tbody>${listaOS}</tbody></table>
+  </div>`:''}
+</div></div>
+
+<script>
+function showTab(t){
+  ['visao','empenho','financeiro','eventos'].forEach((x,i)=>{
+    document.getElementById('tab-'+x).style.display=x===t?'block':'none';
+    document.querySelectorAll('.tab')[i].classList.toggle('active',x===t);
+  });
+}
+<\/script>
+</body></html>`;
+
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
 }
 
 function gerarPDFRelatorioHE(){
