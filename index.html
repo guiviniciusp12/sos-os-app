@@ -1159,18 +1159,23 @@ function loadOperador(){
     if(o.status==='fechada') return false;
     if(isAdmin) return true;
     const atribuida=(o.operadores&&o.operadores.some(op=>op.userId===sessaoAtual.id))||o.operadorId===sessaoAtual.id;
-    return atribuida;
+    if(!atribuida) return false;
+    // Oculta OS totalmente enviadas (sem rascunho pendente) — vão pro Histórico
+    const temRascunho=registros.some(r=>r.osId===o.id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho');
+    const temEnviado=registros.some(r=>r.osId===o.id&&r.operadorId===sessaoAtual.id&&r.status==='enviado');
+    if(temEnviado&&!temRascunho) return false;
+    return true;
   });
-  if(!lista.length){el.innerHTML='<div class="card"><p style="color:var(--dim);font-size:14px;padding:8px 0">Nenhuma OS atribuída. Veja seu <strong>Histórico</strong> para OS já enviadas.</p></div>';return;}
+  if(!lista.length){el.innerHTML='<div class="card"><p style="color:var(--dim);font-size:14px;padding:8px 0">Nenhuma OS pendente. Veja seu <strong>Histórico</strong> para OS já enviadas.</p></div>';return;}
   el.innerHTML='<div class="card"><div class="card-title">Minhas OS</div><div id="op-list"></div></div>';
   document.getElementById('op-list').innerHTML=lista.map(os=>{
-    const regsOp=registros.filter(r=>r.osId===os.id&&r.operadorId===sessaoAtual.id);
+    const regsOp=registros.filter(r=>r.osId===os.id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho');
     return `
     <div class="os-item" onclick="abrirOpOS('${os.id}')">
-      <div class="os-item-header"><span style="font-weight:700">OS ${os.num}</span><span class="badge badge-yellow">Aberta</span></div>
+      <div class="os-item-header"><span style="font-weight:700">OS ${os.num}</span><span class="badge badge-yellow">Pendente</span></div>
       <div style="font-size:13px;color:var(--dim)">${os.cliente}${os.evento?' · '+os.evento:''}</div>
       <div style="font-size:12px;color:var(--dim)">${fmtData(os.dataSaida)} · ${renderEquipTexto(os)}</div>
-      ${regsOp.length?`<div style="font-size:11px;color:var(--green);margin-top:3px">✓ ${regsOp.length} registro${regsOp.length>1?'s':''} enviado${regsOp.length>1?'s':''}</div>`:''}
+      ${regsOp.length?`<div style="font-size:11px;color:var(--yellow);margin-top:3px">📝 ${regsOp.length} rascunho${regsOp.length>1?'s':''} pendente${regsOp.length>1?'s':''}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -1638,6 +1643,10 @@ function toggleCedoCampos(){
 }
 
 const sigPads={};
+// Variáveis temporárias para preservar assinaturas ao navegar entre steps
+let _sigClienteTemp=null;
+let _sigOperadorTemp=null;
+
 function initSigPad(id){
   const canvas=document.getElementById(id);if(!canvas) return;
   const rect=canvas.getBoundingClientRect();
@@ -1654,13 +1663,38 @@ function initSigPad(id){
   canvas.onmouseup=canvas.ontouchend=()=>{sigPads[id].drawing=false};
 }
 function initSig(){
+  // Salva assinaturas já preenchidas antes de reinicializar
+  const scOld=document.getElementById('sigCanvas');
+  const soOld=document.getElementById('sigCanvasOp');
+  if(scOld&&sigPads['sigCanvas']?.hasData) _sigClienteTemp=scOld.toDataURL('image/png');
+  if(soOld&&sigPads['sigCanvasOp']?.hasData) _sigOperadorTemp=soOld.toDataURL('image/png');
+
   // Só inicializa canvas que estão visíveis (dias intermediários têm display:none)
   const sc=document.getElementById('sigCanvas');
   const so=document.getElementById('sigCanvasOp');
   if(sc&&sc.style.display!=='none') initSigPad('sigCanvas');
   if(so&&so.style.display!=='none') initSigPad('sigCanvasOp');
+
+  // Restaura assinaturas salvas nos novos canvases
+  setTimeout(()=>{
+    if(_sigClienteTemp&&sigPads['sigCanvas']){
+      const img=new Image();
+      img.onload=()=>{sigPads['sigCanvas'].ctx.drawImage(img,0,0,img.width/window.devicePixelRatio,img.height/window.devicePixelRatio);sigPads['sigCanvas'].hasData=true;};
+      img.src=_sigClienteTemp;
+    }
+    if(_sigOperadorTemp&&sigPads['sigCanvasOp']){
+      const img=new Image();
+      img.onload=()=>{sigPads['sigCanvasOp'].ctx.drawImage(img,0,0,img.width/window.devicePixelRatio,img.height/window.devicePixelRatio);sigPads['sigCanvasOp'].hasData=true;};
+      img.src=_sigOperadorTemp;
+    }
+  },50);
 }
-function clearSig(id){const p=sigPads[id];if(p){const c=document.getElementById(id);p.ctx.clearRect(0,0,c.width,c.height);p.hasData=false;}}
+function clearSig(id){
+  const p=sigPads[id];
+  if(p){const c=document.getElementById(id);p.ctx.clearRect(0,0,c.width,c.height);p.hasData=false;}
+  if(id==='sigCanvas') _sigClienteTemp=null;
+  if(id==='sigCanvasOp') _sigOperadorTemp=null;
+}
 
 let lastReg=null;
 let regEnviado=false;
@@ -1742,8 +1776,15 @@ function finalizarReg(){
   const valHEop=heO*_heValorOp;
   // HE máquina — soma de todos os geradores que rodaram
   const heM=geradoresReg.reduce((a,g)=>a+(g.heM||0),0);
-  const sigCliente=sigPads['sigCanvas']?.hasData?document.getElementById('sigCanvas').toDataURL('image/png'):null;
-  const sigOperador=sigPads['sigCanvasOp']?.hasData?document.getElementById('sigCanvasOp').toDataURL('image/png'):null;
+  // Captura assinaturas — usa canvas atual ou backup temporário
+  const sigCliente=sigPads['sigCanvas']?.hasData
+    ? document.getElementById('sigCanvas').toDataURL('image/png')
+    : (_sigClienteTemp||null);
+  const sigOperador=sigPads['sigCanvasOp']?.hasData
+    ? document.getElementById('sigCanvasOp').toDataURL('image/png')
+    : (_sigOperadorTemp||null);
+  // Somente a assinatura do operador é obrigatória
+  if(!sigOperador){alert('A assinatura do operador é obrigatória.');return;}
   lastReg={
     id:'reg_'+Date.now(),osId:opOS.id,osNum:opOS.num,cliente:opOS.cliente,evento:opOS.evento||'',
     operadorId:sessaoAtual.id,operadorNome:sessaoAtual.nome,
@@ -1787,6 +1828,9 @@ function finalizarReg(){
   return;
 }
 function _finalizarRegUI(){
+  // Limpa backups de assinatura após salvar com sucesso
+  _sigClienteTemp=null;
+  _sigOperadorTemp=null;
   for(let i=0;i<4;i++){const el=document.getElementById('op'+i);if(el)el.style.display='none';}
   _renderResumoOS();
   showToast('Dia salvo!');
@@ -1797,16 +1841,17 @@ function _finalizarRegUI(){
 function _renderResumoOS(){
   if(!opOS) return;
   const rascunhos=registros.filter(r=>r.osId===opOS.id&&r.operadorId===sessaoAtual.id&&r.status==='rascunho');
+  const enviados=registros.filter(r=>r.osId===opOS.id&&r.operadorId===sessaoAtual.id&&r.status==='enviado');
   const resumoEl=document.getElementById('op-ok-resumo');
   if(!resumoEl) return;
 
-  // Calcula dias contratados e quais já foram preenchidos
+  // Calcula dias contratados e quais já foram preenchidos (rascunho OU enviado)
   let todosDiasPreenchidos=true;
   let diasFaltando=[];
   if(opOS.dataSaida&&opOS.dataRetorno){
     const datasSaida=new Date(opOS.dataSaida+'T12:00:00');
     const datasRetorno=new Date(opOS.dataRetorno+'T12:00:00');
-    const datasCobertos=new Set(rascunhos.map(r=>r.data));
+    const datasCobertos=new Set([...rascunhos,...enviados].map(r=>r.data));
     for(let d=new Date(datasSaida);d<=datasRetorno;d.setDate(d.getDate()+1)){
       const iso=d.toISOString().split('T')[0];
       if(!datasCobertos.has(iso)) diasFaltando.push(iso);
@@ -1814,7 +1859,20 @@ function _renderResumoOS(){
     todosDiasPreenchidos=diasFaltando.length===0;
   }
 
-  const diasHTML=rascunhos.sort((a,b)=>a.data.localeCompare(b.data)).map(r=>`
+  // Dias enviados — exibe como somente leitura (verde)
+  const diasEnviadosHTML=enviados.sort((a,b)=>a.data.localeCompare(b.data)).map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <span style="font-size:10px;background:rgba(16,185,129,.15);color:var(--green);border-radius:4px;padding:1px 6px;margin-right:6px;font-weight:600">✓ Enviado</span>
+        <strong>${fmtData(r.data)}</strong>
+        ${r.geradoresReg&&r.geradoresReg.length?
+          r.geradoresReg.filter(g=>!g.standby||g.rodou).map(g=>`<span style="font-size:11px;color:var(--dim);margin-left:6px">${g.potencia||'G'} ${g.part}→${g.par}</span>`).join('')
+          :`<span style="font-size:11px;color:var(--dim);margin-left:6px">${r.partida}→${r.parada}</span>`}
+        ${r.heOperador>0?`<span style="font-size:11px;color:var(--yellow);margin-left:6px">HE ${fmtHE(r.heOperador)}</span>`:''}
+      </div>
+    </div>`).join('');
+
+  const diasRascunhoHTML=rascunhos.sort((a,b)=>a.data.localeCompare(b.data)).map(r=>`
     <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
       <div>
         <strong>${fmtData(r.data)}</strong>
@@ -1832,10 +1890,13 @@ function _renderResumoOS(){
       ${diasFaltando.map(d=>`<div style="font-size:12px;color:var(--dim);padding:2px 0">• ${fmtData(d)}</div>`).join('')}
     </div>`:'';
 
+  const totalRegs=rascunhos.length+enviados.length;
   resumoEl.innerHTML=`
     <div style="font-weight:700;font-size:13px;margin-bottom:8px">OS ${opOS.num} — ${opOS.cliente}${opOS.evento?' · '+opOS.evento:''}</div>
-    <div style="font-size:12px;color:var(--dim);margin-bottom:6px">${rascunhos.length} dia${rascunhos.length!==1?'s':''} registrado${rascunhos.length!==1?'s':''} (aguardando envio)</div>
-    ${diasHTML||'<div style="color:var(--dim);font-size:12px">Nenhum dia salvo ainda.</div>'}
+    <div style="font-size:12px;color:var(--dim);margin-bottom:6px">${totalRegs} dia${totalRegs!==1?'s':''} registrado${totalRegs!==1?'s':''}${rascunhos.length>0?' · '+rascunhos.length+' aguardando envio':' · ✓ Tudo enviado'}</div>
+    ${diasEnviadosHTML}
+    ${diasRascunhoHTML}
+    ${!totalRegs?'<div style="color:var(--dim);font-size:12px">Nenhum dia salvo ainda.</div>':''}
     ${faltandoHTML}`;
 
   // Controla visibilidade do botão de envio
@@ -1846,7 +1907,7 @@ function _renderResumoOS(){
   // Controla botão de registrar outro dia
   const btnNovo=document.querySelector('button[onclick="novoRegistroDia()"]');
   if(btnNovo){
-    btnNovo.style.display=todosDiasPreenchidos?'none':'block';
+    btnNovo.style.display=todosDiasPreenchidos&&diasFaltando.length===0?'none':'block';
   }
 }
 
