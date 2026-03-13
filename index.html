@@ -3314,32 +3314,32 @@ function gerarPDFOperador(){
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
-  html,body{width:210mm;}
+  html,body{width:297mm;}
   body{
     background:#fff;color:#111;
     font-family:'Montserrat',Arial,sans-serif;
     font-size:9.5pt;
-    padding:14mm 16mm 12mm 16mm;
+    padding:12mm 15mm 10mm 15mm;
     -webkit-print-color-adjust:exact;
     print-color-adjust:exact;
   }
-  @page{size:A4 portrait;margin:0;}
+  @page{size:A4 landscape;margin:0;}
   @media print{
-    html,body{width:210mm;height:297mm;overflow:hidden;}
-    body{padding:14mm 16mm 12mm 16mm;}
+    html,body{width:297mm;height:210mm;overflow:hidden;}
+    body{padding:12mm 15mm 10mm 15mm;}
   }
   table{width:100%;border-collapse:collapse;table-layout:fixed;}
   td,th{overflow:hidden;text-overflow:ellipsis;}
   .tbl-main th{
     background:#E8191A;color:#fff;font-weight:700;
-    font-size:7.5pt;text-transform:uppercase;letter-spacing:.3px;
-    padding:4px 5px;text-align:center;white-space:nowrap;
+    font-size:8pt;text-transform:uppercase;letter-spacing:.3px;
+    padding:5px 6px;text-align:center;white-space:nowrap;
   }
-  .tbl-main td{padding:3px 5px;font-size:8.5pt;border-bottom:1px solid #e0e0e0;vertical-align:middle;}
+  .tbl-main td{padding:4px 6px;font-size:9pt;border-bottom:1px solid #e0e0e0;vertical-align:middle;}
   .tbl-main .th-left{text-align:left;}
-  .tbl-totais td{padding:3px 6px;font-size:8.5pt;}
-  .logo-img{width:42px;height:42px;mix-blend-mode:multiply;}
-  .logo-sos{height:26px;mix-blend-mode:multiply;}
+  .tbl-totais td{padding:4px 7px;font-size:9pt;}
+  .logo-img{width:48px;height:48px;}
+  .logo-sos{height:44px;}
 </style>
 </head>
 <body>
@@ -3382,11 +3382,11 @@ function gerarPDFOperador(){
 <!-- Tabela de registros -->
 <table class="tbl-main" style="margin-bottom:0">
   <colgroup>
-    <col style="width:52px"/><col style="width:52px"/><col style="width:auto"/>
-    <col style="width:auto"/><col style="width:48px"/>
-    <col style="width:42px"/><col style="width:42px"/>
-    <col style="width:42px"/><col style="width:42px"/>
-    <col style="width:50px"/>
+    <col style="width:62px"/><col style="width:62px"/><col style="width:auto"/>
+    <col style="width:auto"/><col style="width:56px"/>
+    <col style="width:52px"/><col style="width:52px"/>
+    <col style="width:52px"/><col style="width:52px"/>
+    <col style="width:60px"/>
   </colgroup>
   <thead>
     <tr>
@@ -3404,11 +3404,11 @@ function gerarPDFOperador(){
 <!-- Totais -->
 <table class="tbl-totais" style="border-top:2px solid #E8191A;margin-top:0">
   <colgroup>
-    <col style="width:52px"/><col style="width:52px"/><col style="width:auto"/>
-    <col style="width:auto"/><col style="width:48px"/>
-    <col style="width:42px"/><col style="width:42px"/>
-    <col style="width:42px"/><col style="width:42px"/>
-    <col style="width:50px"/>
+    <col style="width:62px"/><col style="width:62px"/><col style="width:auto"/>
+    <col style="width:auto"/><col style="width:56px"/>
+    <col style="width:52px"/><col style="width:52px"/>
+    <col style="width:52px"/><col style="width:52px"/>
+    <col style="width:60px"/>
   </colgroup>
   <tbody>
     <tr style="background:#f0f0f0">
@@ -3454,7 +3454,7 @@ function gerarPDFOperador(){
 </body></html>`;
 
   document.getElementById('modal-pdf-op')?.remove();
-  const win=window.open('','_blank','width=900,height=1200');
+  const win=window.open('','_blank','width=1200,height=850');
   win.document.write(html);
   win.document.close();
   setTimeout(()=>win.print(),800);
