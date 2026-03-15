@@ -1768,14 +1768,14 @@ function finalizarReg(){
   if(!data){alert('Preencha a data.');return;}
   const temGerador=opOS&&((opOS.equipamentos&&opOS.equipamentos.some(e=>e.tipo==='gerador'))||(opOS.potencia&&!opOS.equipamentos?.length));
   const geradoresReg=temGerador?coletarGeradoresReg():[];
-  // Validação: pelo menos um gerador que rodou precisa ter horários
+  // Validação: apenas geradores que rodaram precisam de horários
   if(temGerador){
-    const ativos=geradoresReg.filter(g=>!g.standby||g.rodou);
+    const ativos=geradoresReg.filter(g=>g.rodou);
     const semHorario=ativos.find(g=>!g.part||!g.par);
     if(semHorario){alert(`Preencha os horários de Liga/Desliga do gerador ${semHorario.potencia||''}.`);return;}
   }
   // Usa o primeiro gerador ativo como referência para campos legados (compatibilidade)
-  const gRef=geradoresReg.find(g=>!g.standby||g.rodou)||geradoresReg[0]||null;
+  const gRef=geradoresReg.find(g=>g.rodou)||geradoresReg[0]||null;
   const part=gRef?.part||'00:00';
   const par=gRef?.par||'00:00';
   const pM=toMin(part),sM=toMin(par);
