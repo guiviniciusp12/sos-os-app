@@ -628,19 +628,21 @@ function renderOSList(){
     return !registros.some(r=>r.osId===os.id);
   });
 
-  function _section(titulo,cor,icone,items){
+  function _section(titulo,cor,bg,icone,items){
     if(!items.length) return '';
     return `
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:${cor};margin:16px 0 6px;display:flex;align-items:center;gap:6px">
-        <span>${icone}</span>${titulo} <span style="font-weight:400;opacity:.6">(${items.length})</span>
+      <div style="display:flex;align-items:center;gap:8px;margin:20px 0 8px;padding:8px 14px;background:${bg};border-left:3px solid ${cor};border-radius:0 8px 8px 0">
+        <span style="font-size:16px">${icone}</span>
+        <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:${cor}">${titulo}</span>
+        <span style="font-size:11px;font-weight:600;color:${cor};opacity:.7;margin-left:2px">(${items.length})</span>
       </div>
       ${items.map(_buildOSCard).join('')}`;
   }
 
   el.innerHTML=
-    _section('Aguardando envio do operador','#f59e0b','⏳',grpRascunho)+
-    _section('Enviado — pendente de finalizar','#34d399','✅',grpEnviado)+
-    _section('Sem registros ainda','#64748b','📋',grpSemReg);
+    _section('Aguardando envio do operador','#f59e0b','rgba(234,179,8,.08)','⏳',grpRascunho)+
+    _section('Enviado — pendente de finalizar','#34d399','rgba(16,185,129,.07)','✅',grpEnviado)+
+    _section('Sem registros ainda','#94a3b8','rgba(100,116,139,.07)','📋',grpSemReg);
 }
 
 function showFormOS(osId){
