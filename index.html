@@ -1810,8 +1810,10 @@ function finalizarReg(){
   const sigOperador=sigPads['sigCanvasOp']?.hasData
     ? document.getElementById('sigCanvasOp').toDataURL('image/png')
     : (_sigOperadorTemp||null);
-  // Somente a assinatura do operador é obrigatória
-  if(!sigOperador){alert('A assinatura do operador é obrigatória.');return;}
+  // Assinatura só é obrigatória no último dia
+  const _dataFinalReg=document.getElementById('op-data')?.value||'';
+  const _ultimoDiaReg=opOS?.dataRetorno ? _dataFinalReg>=opOS.dataRetorno : true;
+  if(_ultimoDiaReg && !sigOperador){alert('A assinatura do operador é obrigatória.');return;}
   lastReg={
     id:'reg_'+Date.now(),osId:opOS.id,osNum:opOS.num,cliente:opOS.cliente,evento:opOS.evento||'',
     operadorId:sessaoAtual.id,operadorNome:sessaoAtual.nome,
