@@ -840,7 +840,11 @@ function renderEquip(){
             <input type="number" step="0.50" min="0" value="${eq.heValorGerador||''}" placeholder="Ex: 50.00" oninput="equipamentosOS[${i}].heValorGerador=this.value"/>
           </div>
           <div style="grid-column:1/-1;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:10px 10px 8px;margin-top:2px" id="prev-container-${eq.id}">
-            <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">⏰ Previsão de horário por dia (referência para o operador)</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <div style="font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.4px">⏰ Previsão de horário por dia (referência para o operador)</div>
+              <button type="button" onclick="(function(btn){const body=btn.closest('[id^=prev-container]').querySelector('.prev-body');const hidden=body.style.display==='none';body.style.display=hidden?'':'none';btn.textContent=hidden?'▲ Ocultar':'▼ Mostrar';})(this)" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.25);color:var(--blue);border-radius:6px;font-size:10px;padding:3px 10px;cursor:pointer;white-space:nowrap">▲ Ocultar</button>
+            </div>
+            <div class="prev-body">
             ${(()=>{
               const prev=eq.previsaoDias||[];
               if(!prev.length) return `<p style="font-size:12px;color:var(--dim);margin:0">Preencha as datas de saída e retorno acima para gerar a previsão por dia.</p>`;
@@ -878,6 +882,7 @@ function renderEquip(){
                 </div>`;
               }).join('');
             })()}
+            </div><!-- /prev-body -->
           </div>
           <div style="grid-column:1/-1;display:flex;align-items:center;gap:8px;padding:6px 0;margin-top:2px">
             <input type="checkbox" id="eq-standby-${eq.id}" ${eq.standby?'checked':''} onchange="equipamentosOS[${i}].standby=this.checked" style="width:16px;height:16px;accent-color:var(--yellow);cursor:pointer"/>
