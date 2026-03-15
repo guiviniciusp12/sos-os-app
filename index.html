@@ -541,7 +541,11 @@ function renderOSList(){
   // OS fechadas não aparecem aqui — ficam na aba Status
   const lista=ordens.filter(o=>o.status!=='fechada').slice().reverse();
   if(!lista.length){el.innerHTML='<p style="color:var(--dim);font-size:13px;padding:6px 0">Nenhuma OS ativa. OS encerradas estão na aba <strong style="color:var(--dim)">Status</strong>.</p>';return;}
-  el.innerHTML=lista.map(os=>{
+
+  // Separa OS em grupos para admins
+  const isAdm=sessaoAtual?.perfil==='admin'||sessaoAtual?.perfil==='comercial';
+
+  function _buildOSCard(os){
     // Bolinha verde para qualquer dia preenchido (rascunho ou enviado)
     const regsEnviados=registros.filter(r=>r.osId===os.id);
     const datasEnviadas=new Set(regsEnviados.map(r=>r.data));
@@ -598,7 +602,42 @@ function renderOSList(){
       <div style="font-size:12px;color:var(--dim)">${fmtData(os.dataSaida)}→${fmtData(os.dataRetorno)} · ${os.potencia||''} · ${os.patrimonio||''}</div>
       ${diasHTML}
     </div>`;
-  }).join('');
+  }
+
+  if(!isAdm){
+    // Operador: lista simples sem agrupamento
+    el.innerHTML=lista.map(_buildOSCard).join('');
+    return;
+  }
+
+  // Admin: separa em grupos
+  // Grupo 1 — tem rascunho pendente de envio pelo operador
+  const grpRascunho=lista.filter(os=>{
+    return registros.some(r=>r.osId===os.id&&r.status==='rascunho');
+  });
+  // Grupo 2 — todos enviados, OS ainda aberta (pendente de fechamento pelo admin)
+  const grpEnviado=lista.filter(os=>{
+    const regs=registros.filter(r=>r.osId===os.id);
+    return regs.length>0 && regs.every(r=>r.status==='enviado');
+  });
+  // Grupo 3 — sem nenhum registro ainda
+  const grpSemReg=lista.filter(os=>{
+    return !registros.some(r=>r.osId===os.id);
+  });
+
+  function _section(titulo,cor,icone,items){
+    if(!items.length) return '';
+    return `
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:${cor};margin:16px 0 6px;display:flex;align-items:center;gap:6px">
+        <span>${icone}</span>${titulo} <span style="font-weight:400;opacity:.6">(${items.length})</span>
+      </div>
+      ${items.map(_buildOSCard).join('')}`;
+  }
+
+  el.innerHTML=
+    _section('Aguardando envio do operador','#f59e0b','⏳',grpRascunho)+
+    _section('Enviado — pendente de finalizar','#34d399','✅',grpEnviado)+
+    _section('Sem registros ainda','#64748b','📋',grpSemReg);
 }
 
 function showFormOS(osId){
