@@ -592,14 +592,14 @@ function renderOSList(){
           const [,m,d2]=dt.split('-');
           const dow=abrev[new Date(dt+'T12:00:00').getDay()];
           return enviado
-            ?`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                <div style="width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">✓</div>
-                <span style="font-size:9px;color:var(--green);font-weight:600">${d2}/${m}</span>
-               </div>`
-            :`<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                <div style="width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim)">${dow}</div>
-                <span style="font-size:9px;color:var(--dim)">${d2}/${m}</span>
-               </div>`;
+            ?'<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'+
+                '<div style="width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">✓</div>'+
+                '<span style="font-size:9px;color:var(--green);font-weight:600">'+d2+'/'+m+'</span>'+
+               '</div>'
+            :'<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'+
+                '<div style="width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim)">'+dow+'</div>'+
+                '<span style="font-size:9px;color:var(--dim)">'+d2+'/'+m+'</span>'+
+               '</div>';
         }).join('')}
       </div>`;
     }
@@ -847,39 +847,39 @@ function renderEquip(){
             <div class="prev-body">
             ${(()=>{
               const prev=eq.previsaoDias||[];
-              if(!prev.length) return `<p style="font-size:12px;color:var(--dim);margin:0">Preencha as datas de saída e retorno acima para gerar a previsão por dia.</p>`;
+              if(!prev.length) return '<p style="font-size:12px;color:var(--dim);margin:0">Preencha as datas de saída e retorno acima para gerar a previsão por dia.</p>';
               const abrev=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
               return prev.map((dp,di)=>{
                 const dow=abrev[new Date(dp.data+'T12:00:00').getDay()];
                 const [,m,d2]=dp.data.split('-');
                 const hContr=dp.hContratadas||12;
                 const maisHoras=hContr>12;
-                return `<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;padding:8px;border-radius:6px;background:${dp.naoRoda?'rgba(204,0,0,.07)':'rgba(255,255,255,.03)'};border:1px solid ${dp.naoRoda?'rgba(204,0,0,.2)':maisHoras?'rgba(234,179,8,.3)':'var(--border)'}">
-                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                    <span style="font-size:12px;font-weight:700;min-width:68px;color:${maisHoras?'var(--yellow)':'var(--dim)'}">${dow} ${d2}/${m}${maisHoras?` <span style="font-size:10px;background:rgba(234,179,8,.15);color:var(--yellow);border-radius:4px;padding:1px 5px">${hContr}h contrat.</span>`:''}</span>
-                    <div class="field" style="margin:0;flex:1;min-width:80px;${dp.naoRoda?'opacity:.35;pointer-events:none':''}">
-                      <label style="font-size:9px">Liga previsto</label>
-                      <input type="time" value="${dp.hIni||'07:00'}" oninput="equipamentosOS[${i}].previsaoDias[${di}].hIni=this.value" style="padding:4px 8px;height:32px;font-size:12px"/>
-                    </div>
-                    <div class="field" style="margin:0;flex:1;min-width:80px;${dp.naoRoda?'opacity:.35;pointer-events:none':''}">
-                      <label style="font-size:9px">Desliga previsto</label>
-                      <input type="time" value="${dp.hFim||'19:00'}" oninput="equipamentosOS[${i}].previsaoDias[${di}].hFim=this.value" style="padding:4px 8px;height:32px;font-size:12px"/>
-                    </div>
-                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;font-size:11px;color:var(--red-light)">
-                      <input type="checkbox" ${dp.naoRoda?'checked':''} onchange="equipamentosOS[${i}].previsaoDias[${di}].naoRoda=this.checked;renderEquip()" style="width:13px;height:13px;accent-color:var(--red);cursor:pointer"/>
-                      Não roda
-                    </label>
-                  </div>
-                  <div style="display:flex;align-items:center;gap:8px;${dp.naoRoda?'opacity:.35;pointer-events:none':''}">
-                    <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--yellow)">
-                      <input type="checkbox" ${maisHoras?'checked':''} onchange="equipamentosOS[${i}].previsaoDias[${di}].hContratadas=this.checked?13:12;renderEquip()" style="width:13px;height:13px;accent-color:var(--yellow);cursor:pointer"/>
-                      Cliente contratou mais de 12h?
-                    </label>
-                    ${maisHoras?`<select onchange="equipamentosOS[${i}].previsaoDias[${di}].hContratadas=parseInt(this.value);renderEquip()" style="background:var(--card2);border:1px solid rgba(234,179,8,.4);border-radius:6px;color:var(--yellow);font-size:12px;padding:2px 8px;cursor:pointer">
-                      ${[13,14,15,16,17,18,19,20,21,22,23,24].map(h=>`<option value="${h}" ${hContr===h?'selected':''}>${h}h</option>`).join('')}
-                    </select>`:''}
-                  </div>
-                </div>`;
+                return '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px;padding:8px;border-radius:6px;background:'+(dp.naoRoda?'rgba(204,0,0,.07)':'rgba(255,255,255,.03)')+';border:1px solid '+(dp.naoRoda?'rgba(204,0,0,.2)':maisHoras?'rgba(234,179,8,.3)':'var(--border)')+'">'+
+                  '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+                    '<span style="font-size:12px;font-weight:700;min-width:68px;color:'+(maisHoras?'var(--yellow)':'var(--dim)')+'">'+dow+' '+d2+'/'+m+(maisHoras?' <span style="font-size:10px;background:rgba(234,179,8,.15);color:var(--yellow);border-radius:4px;padding:1px 5px">'+hContr+'h contrat.</span>':'')+'</span>'+
+                    '<div class="field" style="margin:0;flex:1;min-width:80px;'+(dp.naoRoda?'opacity:.35;pointer-events:none':'')+'">'+
+                      '<label style="font-size:9px">Liga previsto</label>'+
+                      '<input type="time" value="'+(dp.hIni||'07:00')+'" oninput="equipamentosOS['+i+'].previsaoDias['+di+'].hIni=this.value" style="padding:4px 8px;height:32px;font-size:12px"/>'+
+                    '</div>'+
+                    '<div class="field" style="margin:0;flex:1;min-width:80px;'+(dp.naoRoda?'opacity:.35;pointer-events:none':'')+'">'+
+                      '<label style="font-size:9px">Desliga previsto</label>'+
+                      '<input type="time" value="'+(dp.hFim||'19:00')+'" oninput="equipamentosOS['+i+'].previsaoDias['+di+'].hFim=this.value" style="padding:4px 8px;height:32px;font-size:12px"/>'+
+                    '</div>'+
+                    '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;white-space:nowrap;font-size:11px;color:var(--red-light)">'+
+                      '<input type="checkbox" '+(dp.naoRoda?'checked':'')+' onchange="equipamentosOS['+i+'].previsaoDias['+di+'].naoRoda=this.checked;renderEquip()" style="width:13px;height:13px;accent-color:var(--red);cursor:pointer"/>'+
+                      'Não roda'+
+                    '</label>'+
+                  '</div>'+
+                  '<div style="display:flex;align-items:center;gap:8px;'+(dp.naoRoda?'opacity:.35;pointer-events:none':'')+'">'+
+                    '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--yellow)">'+
+                      '<input type="checkbox" '+(maisHoras?'checked':'')+' onchange="equipamentosOS['+i+'].previsaoDias['+di+'].hContratadas=this.checked?13:12;renderEquip()" style="width:13px;height:13px;accent-color:var(--yellow);cursor:pointer"/>'+
+                      'Cliente contratou mais de 12h?'+
+                    '</label>'+
+                    (maisHoras?'<select onchange="equipamentosOS['+i+'].previsaoDias['+di+'].hContratadas=parseInt(this.value);renderEquip()" style="background:var(--card2);border:1px solid rgba(234,179,8,.4);border-radius:6px;color:var(--yellow);font-size:12px;padding:2px 8px;cursor:pointer">'+
+                      [13,14,15,16,17,18,19,20,21,22,23,24].map(h=>'<option value="'+h+'"'+(hContr===h?' selected':'')+'>'+h+'h</option>').join('')+
+                    '</select>':'')+
+                  '</div>'+
+                '</div>';
               }).join('');
             })()}
             </div><!-- /prev-body -->
@@ -936,7 +936,7 @@ function renderOperadores(){
         <label style="font-size:10px">Operador</label>
         <select onchange="operadoresOS[${i}].userId=this.value;(function(sel,idx){const u=usuarios.find(u=>u.id===sel.value);const wppInput=sel.closest('.op-item').querySelector('input[type=tel]');if(u&&u.wpp&&wppInput){wppInput.value=u.wpp;operadoresOS[idx].wpp=u.wpp;}})(this,${i})">
           <option value="">Selecione</option>
-          ${optsOp.map(u=>`<option value="${u.id}" ${op.userId===u.id?'selected':''}>${u.nome}</option>`).join('')}
+          ${optsOp.map(u=>'<option value="'+u.id+'" '+(op.userId===u.id?'selected':'')+'>'+u.nome+'</option>').join('')}
         </select>
       </div>
       <div class="field" style="margin:0;flex:1;min-width:110px">
@@ -969,7 +969,7 @@ function renderLinksOperadores(os,link){
     const nome=u?u.nome:'Operador';
     const wppNum=op.wpp?(op.wpp.replace(/\D/g,'')):'';
     return `<button onclick="navigator.clipboard.writeText('${link}').then(()=>{this.textContent='Copiado ✓'})" class="btn btn-ghost btn-sm" style="width:auto">Copiar link — ${nome}</button>
-    ${wppNum?`<a href="https://wa.me/${wppNum}?text=${encodeURIComponent('OS '+os.num+' — '+os.cliente+'\nSeu link: '+link)}" target="_blank" class="btn btn-wpp btn-sm" style="width:auto;text-decoration:none">WPP — ${nome}</a>`:''}`;
+    ${wppNum?'<a href="https://wa.me/'+wppNum+'?text='+encodeURIComponent('OS '+os.num+' — '+os.cliente+'\nSeu link: '+link)+'" target="_blank" class="btn btn-wpp btn-sm" style="width:auto;text-decoration:none">WPP — '+nome+'</a>':''}`;
   }).join('');
 }
 
@@ -982,8 +982,8 @@ function renderEquipTexto(os){
   }
   return eqs.map(e=>
     e.tipo==='gerador'
-      ? `⚡ ${e.potencia||'Gerador'}${e.patrimonio?' ('+e.patrimonio+')':''}${e.standby?' <span style="color:var(--yellow);font-size:11px">[Stand-by]</span>':''}`
-      : `🔌 ${e.nome||'Acessório'}${e.quantidade&&e.quantidade!='1'?' ×'+e.quantidade:''}`
+      ? '⚡ '+(e.potencia||'Gerador')+(e.patrimonio?' ('+e.patrimonio+')':'')+(e.standby?' <span style="color:var(--yellow);font-size:11px">[Stand-by]</span>':'')
+      : '🔌 '+(e.nome||'Acessório')+(e.quantidade&&e.quantidade!='1'?' ×'+e.quantidade:'')
   ).join('<br/>');
 }
 
@@ -995,14 +995,7 @@ function renderAcessoriosOperador(os){
   return `<div class="card" style="margin-top:12px">
     <div class="card-title" style="color:var(--red)">🔌 Confirmação de Acessórios</div>
     <p style="font-size:12px;color:var(--dim);margin-bottom:10px">Marque os itens que você conferiu e levou para o evento:</p>
-    ${acessorios.map(a=>`
-      <div class="acessorio-check">
-        <input type="checkbox" id="ck_${a.id}" onchange="atualizarAcessorioCheck()"/>
-        <label for="ck_${a.id}" style="cursor:pointer;flex:1">
-          ${a.nome||'Acessório'}
-          ${a.quantidade&&a.quantidade!='1'?`<span style="color:var(--dim);font-size:11px"> × ${a.quantidade}</span>`:''}
-        </label>
-      </div>`).join('')}
+    ${acessorios.map(a=>'<div class="acessorio-check">'+'<input type="checkbox" id="ck_'+a.id+'" onchange="atualizarAcessorioCheck()"/>'+'<label for="ck_'+a.id+'" style="cursor:pointer;flex:1">'+( a.nome||'Acessório')+(a.quantidade&&a.quantidade!='1'?'<span style="color:var(--dim);font-size:11px"> × '+a.quantidade+'</span>':'')+'</label>'+'</div>').join('')}
     <div id="acessorio-aviso" style="display:none;font-size:12px;color:var(--yellow);margin-top:8px">⚠️ Confirme todos os acessórios antes de continuar.</div>
   </div>`;
 }
@@ -1192,42 +1185,42 @@ function verOS(id){
   </div>
   <div class="card">
     <div class="card-title">Registros do Operador (${regs.length})</div>
-    ${regs.length?regs.map(r=>`
-      <div style="border-bottom:1px solid var(--border);padding:10px 0">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px">
-          <strong>${fmtData(r.data)}</strong>
-          <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
-            ${r.status==='rascunho'?'<span class="badge badge-yellow">📝 Rascunho</span>':''}
-            ${(()=>{
+    ${regs.length?regs.map(r=>
+      '<div style="border-bottom:1px solid var(--border);padding:10px 0">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;flex-wrap:wrap;gap:4px">'+
+          '<strong>'+fmtData(r.data)+'</strong>'+
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">'+
+            (r.status==='rascunho'?'<span class="badge badge-yellow">📝 Rascunho</span>':'')+
+            (()=>{
               if(r.geradoresReg&&r.geradoresReg.length){
                 const todosStandby=r.geradoresReg.every(g=>g.standby&&!g.rodou);
                 if(todosStandby) return '<span class="badge badge-yellow">Stand-by</span>';
               }
-              return r.heMaquina>0?`<span class="badge badge-yellow">+${r.heMaquina.toFixed(1)}h HE máq.</span>`:'<span class="badge badge-green">Dentro contrato</span>';
-            })()}
-          </div>
-        </div>
-        ${r.geradoresReg&&r.geradoresReg.length?r.geradoresReg.map(g=>`
-          <div style="font-size:12px;color:var(--dim);margin-bottom:2px">
-            ${g.standby&&!g.rodou?`<span style="color:var(--yellow)">⚡ ${g.potencia||'Gerador'}${g.patrimonio?' ('+g.patrimonio+')':''} — <strong>Stand-by (não rodou)</strong></span>`:`<span>⚡ ${g.potencia||'Gerador'}${g.patrimonio?' ('+g.patrimonio+')':''} — Liga: ${g.part} · Desliga: ${g.par} · Hor: ${g.horIni}→${g.horFim}${g.heM>0?' · <span style="color:var(--yellow)">+'+g.heM.toFixed(1)+'h HE máq.</span>':''}</span>`}
-          </div>`).join(''):`<div style="font-size:12px;color:var(--dim)">Liga: ${r.partida} · Desliga: ${r.parada} · Hor: ${r.horIni}→${r.horFim}</div>`}
-        ${r.obs?`<div style="font-size:12px;color:var(--dim);margin-top:3px">${r.obs}</div>`:''}
-        ${(r.heOperador>0||r.refeicoes>0)?`<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          ${r.heOperador>0?`<span style="font-size:12px;background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.25);border-radius:6px;padding:3px 8px;font-weight:600">⏱ HE: ${fmtHE(r.heOperador)} → R$ ${(()=>{const _u=usuarios.find(u=>u.id===r.operadorId);const _v=(_u&&_u.heValor>0)?_u.heValor:config.heValor;return(r.heOperador*_v).toFixed(2);})()}</span>`:''}
-          ${r.refeicoes>0?`<span style="font-size:12px;background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.25);border-radius:6px;padding:3px 8px;font-weight:600">🍽 Refeição${r.refeicoes>1?'(×'+r.refeicoes+')':''}: R$ ${(r.valorRefeicao||r.refeicoes*25).toFixed(2)}</span>`:''}
-        </div>`:''}
-        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
-          ${r.assinatura?`<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura cliente</div><img src="${r.assinatura}" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>`:''}
-          ${r.assinaturaOp?`<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura operador</div><img src="${r.assinaturaOp}" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>`:''}
-        </div>
-        ${isAdminView?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-          <button class="btn btn-ghost btn-sm" style="width:auto;font-size:11px;color:var(--blue);border-color:rgba(59,130,246,.3)" onclick="editarRegistroAdmin('${r.id}')">✏️ Editar registro</button>
-          <button class="btn btn-ghost btn-sm" style="width:auto;font-size:11px;color:var(--yellow);border-color:rgba(234,179,8,.3)" onclick="editarHEReg('${r.id}')">⏱ Editar HE</button>
-        </div>`:''}
-      </div>`).join(''):'<p style="color:var(--dim);font-size:13px">Nenhum registro ainda.</p>'}
+              return r.heMaquina>0?'<span class="badge badge-yellow">+'+r.heMaquina.toFixed(1)+'h HE máq.</span>':'<span class="badge badge-green">Dentro contrato</span>';
+            })()+
+          '</div>'+
+        '</div>'+
+        (r.geradoresReg&&r.geradoresReg.length?r.geradoresReg.map(g=>
+          '<div style="font-size:12px;color:var(--dim);margin-bottom:2px">'+
+            (g.standby&&!g.rodou?'<span style="color:var(--yellow)">⚡ '+(g.potencia||'Gerador')+(g.patrimonio?' ('+g.patrimonio+')':'')+' — <strong>Stand-by (não rodou)</strong></span>':'<span>⚡ '+(g.potencia||'Gerador')+(g.patrimonio?' ('+g.patrimonio+')':'')+' — Liga: '+g.part+' · Desliga: '+g.par+' · Hor: '+g.horIni+'→'+g.horFim+(g.heM>0?' · <span style="color:var(--yellow)">+'+g.heM.toFixed(1)+'h HE máq.</span>':'')+' </span>')+
+          '</div>').join(''):'<div style="font-size:12px;color:var(--dim)">Liga: '+r.partida+' · Desliga: '+r.parada+' · Hor: '+r.horIni+'→'+r.horFim+'</div>')+
+        (r.obs?'<div style="font-size:12px;color:var(--dim);margin-top:3px">'+r.obs+'</div>':'')+
+        ((r.heOperador>0||r.refeicoes>0)?'<div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'+
+          (r.heOperador>0?'<span style="font-size:12px;background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.25);border-radius:6px;padding:3px 8px;font-weight:600">⏱ HE: '+fmtHE(r.heOperador)+' → R$ '+(()=>{const _u=usuarios.find(u=>u.id===r.operadorId);const _v=(_u&&_u.heValor>0)?_u.heValor:config.heValor;return(r.heOperador*_v).toFixed(2);})()+'</span>':'')+
+          (r.refeicoes>0?'<span style="font-size:12px;background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.25);border-radius:6px;padding:3px 8px;font-weight:600">🍽 Refeição'+(r.refeicoes>1?'(×'+r.refeicoes+')':'')+': R$ '+(r.valorRefeicao||r.refeicoes*25).toFixed(2)+'</span>':'')+
+        '</div>':'')+
+        '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">'+
+          (r.assinatura?'<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura cliente</div><img src="'+r.assinatura+'" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>':'')+
+          (r.assinaturaOp?'<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura operador</div><img src="'+r.assinaturaOp+'" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>':'')+
+        '</div>'+
+        (isAdminView?'<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'+
+          '<button class="btn btn-ghost btn-sm" style="width:auto;font-size:11px;color:var(--blue);border-color:rgba(59,130,246,.3)" onclick="editarRegistroAdmin(''+r.id+'')">✏️ Editar registro</button>'+
+          '<button class="btn btn-ghost btn-sm" style="width:auto;font-size:11px;color:var(--yellow);border-color:rgba(234,179,8,.3)" onclick="editarHEReg(''+r.id+'')">⏱ Editar HE</button>'+
+        '</div>':'')+
+      '</div>').join(''):'<p style="color:var(--dim);font-size:13px">Nenhum registro ainda.</p>'}
   </div>
-  ${os.status!=='fechada'?`<button class="btn btn-green" onclick="fecharOSConf('${os.id}')">✓ Fechar OS</button>`:''}
-  ${isAdminView?`<button class="btn btn-primary" style="margin-top:8px;background:#1a1a2e;border:1px solid var(--red)" onclick="gerarPDFOS('${os.id}')">📄 Gerar PDF da OS</button>`:''}
+  ${os.status!=='fechada'?'<button class="btn btn-green" onclick="fecharOSConf(''+os.id+'')">✓ Fechar OS</button>':''}
+  ${isAdminView?'<button class="btn btn-primary" style="margin-top:8px;background:#1a1a2e;border:1px solid var(--red)" onclick="gerarPDFOS(''+os.id+'')">📄 Gerar PDF da OS</button>':''}
   <button class="btn btn-ghost" style="margin-top:8px;color:var(--red-light);border-color:rgba(204,0,0,.3)" onclick="excluirOS('${os.id}')">🗑 Excluir OS</button>
   <button class="btn btn-ghost" style="margin-top:8px" onclick="fecharDet()">← Voltar</button>`;
   } // fim _renderVerOS_inner
@@ -1298,7 +1291,7 @@ function loadOperador(){
       <div class="os-item-header"><span style="font-weight:700">OS ${os.num}</span><span class="badge badge-yellow">Pendente</span></div>
       <div style="font-size:13px;color:var(--dim)">${os.cliente}${os.evento?' · '+os.evento:''}</div>
       <div style="font-size:12px;color:var(--dim)">${fmtData(os.dataSaida)} · ${renderEquipTexto(os)}</div>
-      ${regsOp.length?`<div style="font-size:11px;color:var(--yellow);margin-top:3px">📝 ${regsOp.length} rascunho${regsOp.length>1?'s':''} pendente${regsOp.length>1?'s':''}</div>`:''}
+      ${regsOp.length?'<div style="font-size:11px;color:var(--yellow);margin-top:3px">📝 '+regsOp.length+' rascunho'+(regsOp.length>1?'s':'')+' pendente'+(regsOp.length>1?'s':'')+'</div>':''}
     </div>`;
   }).join('');
 }
@@ -1581,10 +1574,10 @@ function _renderStep3(){
   const resumoRodagens=todosRascunhos.map(r=>{
     const linhasG=r.geradoresReg&&r.geradoresReg.length
       ? r.geradoresReg.map(g=>g.standby&&!g.rodou
-          ? `<div style="font-size:12px;color:var(--dim);margin-left:8px">⚡ ${g.potencia||'Gerador'}${g.patrimonio?' ('+g.patrimonio+')':''} — <em>Stand-by (não operou)</em></div>`
-          : `<div style="font-size:12px;color:var(--dim);margin-left:8px">⚡ ${g.potencia||'Gerador'}${g.patrimonio?' ('+g.patrimonio+')':''} — ${g.part} às ${g.par} (${g.totalHoras?g.totalHoras.toFixed(1)+'h':'—'})${g.heM>0?' <span style="color:var(--yellow)">+'+g.heM.toFixed(1)+'h HE</span>':''}</div>`
+          ? '<div style="font-size:12px;color:var(--dim);margin-left:8px">⚡ '+(g.potencia||'Gerador')+(g.patrimonio?' ('+g.patrimonio+')':'')+' — <em>Stand-by (não operou)</em></div>'
+          : '<div style="font-size:12px;color:var(--dim);margin-left:8px">⚡ '+(g.potencia||'Gerador')+(g.patrimonio?' ('+g.patrimonio+')':'')+' — '+g.part+' às '+g.par+' ('+(g.totalHoras?g.totalHoras.toFixed(1)+'h':'—')+')' +(g.heM>0?' <span style="color:var(--yellow)">+'+g.heM.toFixed(1)+'h HE</span>':'')+'</div>'
         ).join('')
-      : `<div style="font-size:12px;color:var(--dim);margin-left:8px">Liga: ${r.partida} · Desliga: ${r.parada} · ${r.totalHoras?r.totalHoras.toFixed(1)+'h':'—'}</div>`;
+      : '<div style="font-size:12px;color:var(--dim);margin-left:8px">Liga: '+r.partida+' · Desliga: '+r.parada+' · '+(r.totalHoras?r.totalHoras.toFixed(1)+'h':'—')+'</div>';
     return `<div style="padding:7px 0;border-bottom:1px solid var(--border)">
       <div style="font-weight:700;font-size:13px;margin-bottom:4px">${fmtData(r.data)}</div>
       ${linhasG}
@@ -1635,7 +1628,7 @@ function opIniciarLocacaoPeriodica(){
     <div class="card-title">📅 Locação ${os.tipoLocacao?os.tipoLocacao.charAt(0).toUpperCase()+os.tipoLocacao.slice(1):'Periódica'} — OS ${os.num}</div>
     <table class="tbl">
       <tr><td style="color:var(--dim)">Cliente</td><td><strong>${os.cliente}</strong></td></tr>
-      ${os.evento?`<tr><td style="color:var(--dim)">Evento/Ref.</td><td>${os.evento}</td></tr>`:''}
+      ${os.evento?'<tr><td style="color:var(--dim)">Evento/Ref.</td><td>'+os.evento+'</td></tr>':''}
       <tr><td style="color:var(--dim)">Local</td><td>${os.endereco||''} ${os.cidade?'— '+os.cidade:''}${os.uf?'/'+os.uf:''}</td></tr>
       <tr><td style="color:var(--dim)">Equipamentos</td><td>${renderEquipTexto(os)}</td></tr>
       <tr><td style="color:var(--dim)">Período</td><td>${fmtData(os.dataSaida)} → ${fmtData(os.dataRetorno)}</td></tr>
@@ -2128,12 +2121,12 @@ function _renderResumoOS(){
         <div style="flex:1;background:${regEntrega?'rgba(16,185,129,.12)':'rgba(234,179,8,.08)'};border:1px solid ${regEntrega?'rgba(16,185,129,.3)':'rgba(234,179,8,.2)'};border-radius:10px;padding:12px;text-align:center">
           <div style="font-size:20px;margin-bottom:4px">📦</div>
           <div style="font-size:12px;font-weight:700;color:${regEntrega?'var(--green)':'var(--yellow)'}">${regEntrega?'✓ Entrega registrada':'Aguardando entrega'}</div>
-          ${regEntrega?`<div style="font-size:11px;color:var(--dim);margin-top:3px">${fmtData(regEntrega.data)}</div>`:''}
+          ${regEntrega?'<div style="font-size:11px;color:var(--dim);margin-top:3px">'+fmtData(regEntrega.data)+'</div>':''}
         </div>
         <div style="flex:1;background:${regDevolucao?'rgba(16,185,129,.12)':'rgba(100,116,139,.08)'};border:1px solid ${regDevolucao?'rgba(16,185,129,.3)':'rgba(100,116,139,.2)'};border-radius:10px;padding:12px;text-align:center">
           <div style="font-size:20px;margin-bottom:4px">🔄</div>
           <div style="font-size:12px;font-weight:700;color:${regDevolucao?'var(--green)':'var(--dim)'}">${regDevolucao?'✓ Devolução registrada':'Aguardando devolução'}</div>
-          ${regDevolucao?`<div style="font-size:11px;color:var(--dim);margin-top:3px">${fmtData(regDevolucao.data)}</div>`:''}
+          ${regDevolucao?'<div style="font-size:11px;color:var(--dim);margin-top:3px">'+fmtData(regDevolucao.data)+'</div>':''}
         </div>
       </div>`;
     // Oculta botões de fluxo de eventos
@@ -2167,45 +2160,45 @@ function _renderResumoOS(){
   }
 
   // Dias enviados — exibe como somente leitura (verde)
-  const diasEnviadosHTML=enviados.sort((a,b)=>a.data.localeCompare(b.data)).map(r=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">
-      <div>
-        <span style="font-size:10px;background:rgba(16,185,129,.15);color:var(--green);border-radius:4px;padding:1px 6px;margin-right:6px;font-weight:600">✓ Enviado</span>
-        <strong>${fmtData(r.data)}</strong>
-        ${r.geradoresReg&&r.geradoresReg.length?
-          r.geradoresReg.filter(g=>!g.standby||g.rodou).map(g=>`<span style="font-size:11px;color:var(--dim);margin-left:6px">${g.potencia||'G'} ${g.part}→${g.par}</span>`).join('')
-          :`<span style="font-size:11px;color:var(--dim);margin-left:6px">${r.partida}→${r.parada}</span>`}
-        ${r.heOperador>0?`<span style="font-size:11px;color:var(--yellow);margin-left:6px">HE ${fmtHE(r.heOperador)}</span>`:''}
-      </div>
-    </div>`).join('');
+  const diasEnviadosHTML=enviados.sort((a,b)=>a.data.localeCompare(b.data)).map(r=>
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">'+
+      '<div>'+
+        '<span style="font-size:10px;background:rgba(16,185,129,.15);color:var(--green);border-radius:4px;padding:1px 6px;margin-right:6px;font-weight:600">✓ Enviado</span>'+
+        '<strong>'+fmtData(r.data)+'</strong>'+
+        (r.geradoresReg&&r.geradoresReg.length?
+          r.geradoresReg.filter(g=>!g.standby||g.rodou).map(g=>'<span style="font-size:11px;color:var(--dim);margin-left:6px">'+(g.potencia||'G')+' '+g.part+'→'+g.par+'</span>').join('')
+          :'<span style="font-size:11px;color:var(--dim);margin-left:6px">'+r.partida+'→'+r.parada+'</span>')+
+        (r.heOperador>0?'<span style="font-size:11px;color:var(--yellow);margin-left:6px">HE '+fmtHE(r.heOperador)+'</span>':'')+
+      '</div>'+
+    '</div>').join('');
 
-  const diasRascunhoHTML=rascunhos.sort((a,b)=>a.data.localeCompare(b.data)).map(r=>`
-    <div style="padding:8px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <strong>${fmtData(r.data)}</strong>
-          ${r.geradoresReg&&r.geradoresReg.length?
-            r.geradoresReg.filter(g=>!g.standby||g.rodou).map(g=>`<span style="font-size:11px;color:var(--dim);margin-left:6px">${g.potencia||'G'} ${g.part}→${g.par}</span>`).join('')
-            :`<span style="font-size:11px;color:var(--dim);margin-left:6px">${r.partida}→${r.parada}</span>`}
-          ${r.heOperador>0?`<span style="font-size:11px;color:var(--yellow);margin-left:6px">HE ${fmtHE(r.heOperador)}</span>`:''}
-        </div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <button onclick="editarHERascunho('${r.id}')" style="background:rgba(204,0,0,.15);border:1px solid rgba(204,0,0,.25);color:#CC0000;border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer" title="Editar HE deste dia">✏️ HE</button>
-          <button onclick="excluirRascunho('${r.id}')" style="background:none;border:none;color:var(--red-light);font-size:16px;cursor:pointer;padding:0 4px" title="Remover este dia">×</button>
-        </div>
-      </div>
-      <div style="margin-top:4px;font-size:11px;color:var(--dim)">
-        ${r.heIni&&r.heFim?`⏱ HE: ${r.heIni} → ${r.heFim}`:'<span style="color:#f59e0b">⚠️ HE não preenchida</span>'}
-        ${r.chegouCedo&&r.cedoIni&&r.cedoFim?` · Cedo: ${r.cedoIni}→${r.cedoFim}`:''}
-      </div>
-    </div>`).join('');
+  const diasRascunhoHTML=rascunhos.sort((a,b)=>a.data.localeCompare(b.data)).map(r=>
+    '<div style="padding:8px 0;border-bottom:1px solid var(--border)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<div>'+
+          '<strong>'+fmtData(r.data)+'</strong>'+
+          (r.geradoresReg&&r.geradoresReg.length?
+            r.geradoresReg.filter(g=>!g.standby||g.rodou).map(g=>'<span style="font-size:11px;color:var(--dim);margin-left:6px">'+(g.potencia||'G')+' '+g.part+'→'+g.par+'</span>').join('')
+            :'<span style="font-size:11px;color:var(--dim);margin-left:6px">'+r.partida+'→'+r.parada+'</span>')+
+          (r.heOperador>0?'<span style="font-size:11px;color:var(--yellow);margin-left:6px">HE '+fmtHE(r.heOperador)+'</span>':'')+
+        '</div>'+
+        '<div style="display:flex;gap:6px;align-items:center">'+
+          '<button onclick="editarHERascunho(''+r.id+'')" style="background:rgba(204,0,0,.15);border:1px solid rgba(204,0,0,.25);color:#CC0000;border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer" title="Editar HE deste dia">✏️ HE</button>'+
+          '<button onclick="excluirRascunho(''+r.id+'')" style="background:none;border:none;color:var(--red-light);font-size:16px;cursor:pointer;padding:0 4px" title="Remover este dia">×</button>'+
+        '</div>'+
+      '</div>'+
+      '<div style="margin-top:4px;font-size:11px;color:var(--dim)">'+
+        (r.heIni&&r.heFim?'⏱ HE: '+r.heIni+' → '+r.heFim:'<span style="color:#f59e0b">⚠️ HE não preenchida</span>')+
+        (r.chegouCedo&&r.cedoIni&&r.cedoFim?' · Cedo: '+r.cedoIni+'→'+r.cedoFim:'')+
+      '</div>'+
+    '</div>').join('');
 
-  const faltandoHTML=diasFaltando.length?`
-    <div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.2);border-radius:8px;padding:10px;margin-top:8px">
-      <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:4px">⏳ Dias ainda não registrados (${diasFaltando.length}):</div>
-      ${diasFaltando.slice(0,7).map(d=>`<div style="font-size:12px;color:var(--dim);padding:2px 0">• ${fmtData(d)}</div>`).join('')}
-      ${diasFaltando.length>7?`<div style="font-size:11px;color:var(--dim);padding:4px 0 0 0">... e mais ${diasFaltando.length-7} dias</div>`:''}
-    </div>`:'';
+  const faltandoHTML=diasFaltando.length?
+    '<div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.2);border-radius:8px;padding:10px;margin-top:8px">'+
+      '<div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:4px">⏳ Dias ainda não registrados ('+diasFaltando.length+'):</div>'+
+      diasFaltando.slice(0,7).map(d=>'<div style="font-size:12px;color:var(--dim);padding:2px 0">• '+fmtData(d)+'</div>').join('')+
+      (diasFaltando.length>7?'<div style="font-size:11px;color:var(--dim);padding:4px 0 0 0">... e mais '+(diasFaltando.length-7)+' dias</div>':'')+
+    '</div>':'';
 
   const totalRegs=rascunhos.length+enviados.length;
   resumoEl.innerHTML=`
@@ -2354,20 +2347,20 @@ function enviarParaAdmin(){
         <div style="font-weight:700;font-size:17px;color:var(--fg);margin-bottom:6px">Atenção antes de enviar!</div>
         <div style="font-size:13px;color:var(--dim);line-height:1.5">Após o envio ao administrativo, <strong>você não terá mais acesso</strong> para alterar nenhuma informação desta OS.</div>
       </div>
-      ${semHE.length?`
-      <div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:12px;margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;color:#f87171;margin-bottom:4px">⚠️ HE não preenchida:</div>
-        ${semHE.map(r=>`<div style="font-size:12px;color:var(--dim)">• ${fmtData(r.data)} — horário de HE em branco</div>`).join('')}
-        <div style="font-size:11px;color:var(--dim);margin-top:6px">Use o botão ✏️ HE para completar antes de enviar.</div>
-      </div>`:''}
+      ${semHE.length?
+      '<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:12px;margin-bottom:14px">'+
+        '<div style="font-size:12px;font-weight:700;color:#f87171;margin-bottom:4px">⚠️ HE não preenchida:</div>'+
+        semHE.map(r=>'<div style="font-size:12px;color:var(--dim)">• '+fmtData(r.data)+' — horário de HE em branco</div>').join('')+
+        '<div style="font-size:11px;color:var(--dim);margin-top:6px">Use o botão ✏️ HE para completar antes de enviar.</div>'+
+      '</div>':''}
       <div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.2);border-radius:10px;padding:12px;margin-bottom:16px">
         <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:6px">📋 Verifique antes de confirmar:</div>
-        ${rascunhos.map(r=>`
-          <div style="font-size:12px;color:var(--dim);padding:3px 0">
-            <strong>${fmtData(r.data)}</strong>
-            ${r.heIni&&r.heFim?`<span style="color:var(--yellow)"> · HE: ${r.heIni}→${r.heFim}</span>`:`<span style="color:#f87171"> · sem HE</span>`}
-            ${r.heOperador>0?` · ${fmtHE(r.heOperador)}`:''}
-          </div>`).join('')}
+        ${rascunhos.map(r=>
+          '<div style="font-size:12px;color:var(--dim);padding:3px 0">'+
+            '<strong>'+fmtData(r.data)+'</strong>'+
+            (r.heIni&&r.heFim?'<span style="color:var(--yellow)"> · HE: '+r.heIni+'→'+r.heFim+'</span>':'<span style="color:#f87171"> · sem HE</span>')+
+            (r.heOperador>0?' · '+fmtHE(r.heOperador):'')+
+          '</div>').join('')}
       </div>
       <div style="display:flex;gap:10px">
         <button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:12px;background:var(--dark);border:1px solid var(--border);color:var(--dim);border-radius:10px;font-size:14px;cursor:pointer">← Voltar e revisar</button>
@@ -2453,7 +2446,7 @@ function loadRelatorio(){
         const diff=Math.round((prox-hoje)/(1000*60*60*24));
         const cor=diff<=3?'#f87171':diff<=7?'#f59e0b':'#94a3b8';
         const bg=diff<=3?'rgba(248,113,113,.12)':diff<=7?'rgba(245,158,11,.1)':'rgba(148,163,184,.08)';
-        return `<span style="font-size:11px;font-weight:700;color:${cor};background:${bg};border:1px solid ${cor}40;border-radius:10px;padding:2px 9px;margin-left:6px">📆 Vence dia ${dv}${diff===0?' (hoje)':diff===1?' (amanhã)':' (em '+diff+'d)'}</span>`;
+        return '<span style="font-size:11px;font-weight:700;color:'+cor+';background:'+bg+';border:1px solid '+cor+'40;border-radius:10px;padding:2px 9px;margin-left:6px">📆 Vence dia '+dv+(diff===0?' (hoje)':diff===1?' (amanhã)':' (em '+diff+'d)')+'</span>';
       })();
       diasHTML=`<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
         <div style="display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1px solid ${temEntrega?'var(--green)':'var(--border)'};background:${temEntrega?'rgba(16,185,129,.12)':'var(--card2)'}">
@@ -2481,14 +2474,14 @@ function loadRelatorio(){
           const [,m,d2]=dt.split('-');
           const dow=abrev[new Date(dt+'T12:00:00').getDay()];
           return enviado
-            ? `<div title="${d2}/${m} — enviado" style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                <div style="width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">✓</div>
-                <span style="font-size:9px;color:var(--green);font-weight:600">${d2}/${m}</span>
-               </div>`
-            : `<div title="${d2}/${m} — pendente" style="display:flex;flex-direction:column;align-items:center;gap:2px">
-                <div style="width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim)">${dow}</div>
-                <span style="font-size:9px;color:var(--dim)">${d2}/${m}</span>
-               </div>`;
+            ? '<div title="'+d2+'/'+m+' — enviado" style="display:flex;flex-direction:column;align-items:center;gap:2px">'+
+                '<div style="width:26px;height:26px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff">✓</div>'+
+                '<span style="font-size:9px;color:var(--green);font-weight:600">'+d2+'/'+m+'</span>'+
+               '</div>'
+            : '<div title="'+d2+'/'+m+' — pendente" style="display:flex;flex-direction:column;align-items:center;gap:2px">'+
+                '<div style="width:26px;height:26px;border-radius:50%;border:2px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--dim)">'+dow+'</div>'+
+                '<span style="font-size:9px;color:var(--dim)">'+d2+'/'+m+'</span>'+
+               '</div>';
         }).join('')}
       </div>`;
     } else if(regsOS.length){
@@ -2505,9 +2498,9 @@ function loadRelatorio(){
         </div>
         <span style="font-size:11px;color:var(--dim);white-space:nowrap;margin-left:8px">${fmtData(os.dataSaida)}→${fmtData(os.dataRetorno)}</span>
       </div>
-      ${os.evento?`<div style="font-size:12px;color:var(--red);margin-bottom:4px">🎪 ${os.evento}</div>`:''}
+      ${os.evento?'<div style="font-size:12px;color:var(--red);margin-bottom:4px">🎪 '+os.evento+'</div>':''}
       <div style="font-size:11px;color:var(--dim);margin-bottom:2px">${equips}</div>
-      ${ops.length?`<div style="font-size:11px;color:var(--dim)">👤 ${ops.join(', ')}</div>`:''}
+      ${ops.length?'<div style="font-size:11px;color:var(--dim)">👤 '+ops.join(', ')+'</div>':''}
       ${diasHTML}
     </div>`;
   }
@@ -2538,27 +2531,27 @@ function loadRelatorio(){
   </div>
 
   <!-- Em andamento -->
-  ${emAndamento.length?`
-  <div class="card" style="border-left:3px solid var(--green)">
-    <div class="card-title" style="color:var(--green)">🟢 Em andamento (${emAndamento.length})</div>
-    ${emAndamento.map(os=>cardOS(os,'var(--green)')).join('')}
-  </div>`:''}
+  ${emAndamento.length?
+  '<div class="card" style="border-left:3px solid var(--green)">'+
+    '<div class="card-title" style="color:var(--green)">🟢 Em andamento ('+emAndamento.length+')</div>'+
+    emAndamento.map(os=>cardOS(os,'var(--green)')).join('')+
+  '</div>':''}
 
   <!-- Futuras -->
-  ${futuras.length?`
-  <div class="card" style="border-left:3px solid var(--red)">
-    <div class="card-title" style="color:var(--red)">🔵 Futuras (${futuras.length})</div>
-    ${futuras.sort((a,b)=>(a.dataSaida||'').localeCompare(b.dataSaida||'')).map(os=>cardOS(os,'rgba(204,0,0,.25)')).join('')}
-  </div>`:''}
+  ${futuras.length?
+  '<div class="card" style="border-left:3px solid var(--red)">'+
+    '<div class="card-title" style="color:var(--red)">🔵 Futuras ('+futuras.length+')</div>'+
+    futuras.sort((a,b)=>(a.dataSaida||'').localeCompare(b.dataSaida||'')).map(os=>cardOS(os,'rgba(204,0,0,.25)')).join('')+
+  '</div>':''}
 
-  ${!emAndamento.length&&!futuras.length?`<div class="card"><p style="color:var(--dim);font-size:13px;text-align:center;padding:12px 0">Nenhuma OS ativa ou futura no momento.</p></div>`:''}
+  ${!emAndamento.length&&!futuras.length?'<div class="card"><p style="color:var(--dim);font-size:13px;text-align:center;padding:12px 0">Nenhuma OS ativa ou futura no momento.</p></div>':''}
 
   <!-- Encerradas do mês -->
-  ${encerradasMes.length?`
-  <div class="card" style="border-left:3px solid var(--dim);margin-top:8px">
-    <div class="card-title" style="color:var(--dim)">✅ Encerradas no mês (${encerradasMes.length})</div>
-    ${encerradasMes.sort((a,b)=>(b.dataRetorno||b.dataSaida||'').localeCompare(a.dataRetorno||a.dataSaida||'')).map(os=>cardOS(os,'rgba(136,136,136,.25)')).join('')}
-  </div>`:''}`;
+  ${encerradasMes.length?
+  '<div class="card" style="border-left:3px solid var(--dim);margin-top:8px">'+
+    '<div class="card-title" style="color:var(--dim)">✅ Encerradas no mês ('+encerradasMes.length+')</div>'+
+    encerradasMes.sort((a,b)=>(b.dataRetorno||b.dataSaida||'').localeCompare(a.dataRetorno||a.dataSaida||'')).map(os=>cardOS(os,'rgba(136,136,136,.25)')).join('')+
+  '</div>':''}`;
 }
 
 // ════════════════════════════════════════
@@ -2828,7 +2821,7 @@ function abrirModalAdicionarHE(){
         <label>Colaborador</label>
         <select id="ahe-op" style="width:100%;padding:10px 12px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:13px">
           <option value="">Selecione o colaborador...</option>
-          ${operadores.map(u=>`<option value="${u.id}">${u.nome}</option>`).join('')}
+          ${operadores.map(u=>'<option value="'+u.id+'">'+u.nome+'</option>').join('')}
         </select>
       </div>
 
@@ -2857,10 +2850,7 @@ function abrirModalAdicionarHE(){
 
       <div style="font-weight:700;font-size:13px;margin:12px 0 8px">📋 Motivo da HE</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        ${['Desmontagem','Ajudar a operar','Abastecer','Munkar'].map(m=>`
-        <label style="display:flex;align-items:center;gap:8px;background:var(--dark2,var(--dark));border-radius:8px;padding:10px;cursor:pointer;font-size:13px">
-          <input type="radio" name="ahe-motivo" value="${m}" style="accent-color:var(--blue);width:16px;height:16px"/> ${m}
-        </label>`).join('')}
+        ${['Desmontagem','Ajudar a operar','Abastecer','Munkar'].map(m=>'<label style="display:flex;align-items:center;gap:8px;background:var(--dark2,var(--dark));border-radius:8px;padding:10px;cursor:pointer;font-size:13px">'+'<input type="radio" name="ahe-motivo" value="'+m+'" style="accent-color:var(--blue);width:16px;height:16px"/> '+m+'</label>').join('')}
         <label style="display:flex;align-items:center;gap:8px;background:var(--dark2,var(--dark));border-radius:8px;padding:10px;cursor:pointer;font-size:13px;grid-column:1/-1">
           <input type="radio" name="ahe-motivo" value="__outro__" style="accent-color:var(--blue);width:16px;height:16px" onchange="document.getElementById('ahe-motivo-outro-wrap').style.display='block';document.getElementById('ahe-motivo-outro').focus()"/> Outro (descreva)
         </label>
@@ -2963,33 +2953,17 @@ function editarHETimeReg(regId){
     <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">⚡ Geradores</div>
     ${geradores.map((g,gi)=>{
       const gd=(r.geradoresReg||[]).find(x=>x.eqId===g.id)||{};
-      if(gd.standby&&!gd.rodou) return `<div style="font-size:12px;color:var(--yellow);padding:4px 0">⚡ ${g.potencia||'Gerador'} (${g.patrimonio||'—'}) — Stand-by</div>`;
+      if(gd.standby&&!gd.rodou) return '<div style="font-size:12px;color:var(--yellow);padding:4px 0">⚡ '+(g.potencia||'Gerador')+' ('+(g.patrimonio||'—')+') — Stand-by</div>';
       const hcVal=gd.hContratadas||12;
-      const hcOpts=[12,13,14,15,16,17,18,19,20,21,22,23,24].map(h=>`<option value="${h}"${h===hcVal?' selected':''}>${h}h</option>`).join('');
-      return `<div style="background:var(--dark);border-radius:8px;padding:10px;margin-bottom:8px">
-        <div style="font-size:12px;font-weight:700;margin-bottom:8px">⚡ ${g.potencia||'Gerador'} (${g.patrimonio||'—'})</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div class="field" style="margin:0"><label style="font-size:11px">Liga</label><input type="time" id="het-part-${gi}" value="${gd.part||''}"/></div>
-          <div class="field" style="margin:0"><label style="font-size:11px">Desliga</label><input type="time" id="het-par-${gi}" value="${gd.par||''}"/></div>
-          <div class="field" style="margin:0"><label style="font-size:11px">Horímetro Ini</label><input type="number" id="het-hi-${gi}" step="0.1" value="${gd.horIni||''}"/></div>
-          <div class="field" style="margin:0"><label style="font-size:11px">Horímetro Fim</label><input type="number" id="het-hf-${gi}" step="0.1" value="${gd.horFim||''}"/></div>
-          <div class="field" style="margin:0"><label style="font-size:11px">Horas contratadas</label><select id="het-hc-${gi}">${hcOpts}</select></div>
-          <div class="field" style="margin:0;display:flex;align-items:center;gap:6px;padding-top:18px">
-            <input type="checkbox" id="het-meia-${gi}" ${gd.meiadiaria?'checked':''} style="width:16px;height:16px;accent-color:var(--blue)"/>
-            <label for="het-meia-${gi}" style="font-size:11px;margin:0;cursor:pointer">Meia diária</label>
-          </div>
-        </div>
-      </div>`;
+      const hcOpts=[12,13,14,15,16,17,18,19,20,21,22,23,24].map(h=>'<option value="'+h+'"'+(h===hcVal?' selected':'')+'>'+h+'h</option>').join('');
+      return '<div style="background:var(--dark);border-radius:8px;padding:10px;margin-bottom:8px">'+'<div style="font-size:12px;font-weight:700;margin-bottom:8px">⚡ '+(g.potencia||'Gerador')+' ('+(g.patrimonio||'—')+')</div>'+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+'<div class="field" style="margin:0"><label style="font-size:11px">Liga</label><input type="time" id="het-part-'+gi+'" value="'+(gd.part||'')+'"/></div>'+'<div class="field" style="margin:0"><label style="font-size:11px">Desliga</label><input type="time" id="het-par-'+gi+'" value="'+(gd.par||'')+'"/></div>'+'<div class="field" style="margin:0"><label style="font-size:11px">Horímetro Ini</label><input type="number" id="het-hi-'+gi+'" step="0.1" value="'+(gd.horIni||'')+'"/></div>'+'<div class="field" style="margin:0"><label style="font-size:11px">Horímetro Fim</label><input type="number" id="het-hf-'+gi+'" step="0.1" value="'+(gd.horFim||'')+'"/></div>'+'<div class="field" style="margin:0"><label style="font-size:11px">Horas contratadas</label><select id="het-hc-'+gi+'">'+hcOpts+'</select></div>'+'<div class="field" style="margin:0;display:flex;align-items:center;gap:6px;padding-top:18px">'+'<input type="checkbox" id="het-meia-'+gi+'" '+(gd.meiadiaria?'checked':'')+' style="width:16px;height:16px;accent-color:var(--blue)"/>'+'<label for="het-meia-'+gi+'" style="font-size:11px;margin:0;cursor:pointer">Meia diária</label>'+'</div>'+'</div>'+'</div>';
     }).join('')}`:'';
 
   // Seção motivo (só avulsas)
   const motivoHTML=r.heAvulsa?`
     <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">📋 Motivo da HE</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      ${['Desmontagem','Ajudar a operar','Abastecer','Munkar'].map(m=>`
-      <label style="display:flex;align-items:center;gap:8px;background:var(--dark);border-radius:8px;padding:10px;cursor:pointer;font-size:13px">
-        <input type="radio" name="het-motivo" value="${m}" ${r.motivoHE===m?'checked':''} style="accent-color:var(--blue);width:16px;height:16px"/> ${m}
-      </label>`).join('')}
+      ${['Desmontagem','Ajudar a operar','Abastecer','Munkar'].map(m=>'<label style="display:flex;align-items:center;gap:8px;background:var(--dark);border-radius:8px;padding:10px;cursor:pointer;font-size:13px">'+'<input type="radio" name="het-motivo" value="'+m+'" '+(r.motivoHE===m?'checked':'')+' style="accent-color:var(--blue);width:16px;height:16px"/> '+m+'</label>').join('')}
     </div>`:'';
 
   const pop=document.createElement('div');
@@ -3004,7 +2978,7 @@ function editarHETimeReg(regId){
         <div class="field" style="margin:0"><label style="font-size:11px">Data</label><input type="date" id="het-data" value="${r.data||''}"/></div>
         <div class="field" style="margin:0"><label style="font-size:11px">Operador</label>
           <select id="het-op">
-            ${usuarios.filter(u=>u.perfil==='operador').map(u=>`<option value="${u.id}" ${u.id===r.operadorId?'selected':''}>${u.nome}</option>`).join('')}
+            ${usuarios.filter(u=>u.perfil==='operador').map(u=>'<option value="'+u.id+'" '+(u.id===r.operadorId?'selected':'')+'>'+u.nome+'</option>').join('')}
           </select>
         </div>
       </div>
@@ -3215,20 +3189,20 @@ function gerarHE(){
       const valHE=(r.heOperador||0)*valorHora;
       const valRef=(r.valorRefeicao||((r.refeicoes||0)*25));
       const heBase=r.heOperador-(r.heCedo||0);
-      const heHorario=(r.heIni&&r.heFim)?`${r.heIni} → ${r.heFim}`:'';
-      const cedoBadge=(r.chegouCedo&&(r.heCedo||0)>0)?`<span style="font-size:11px;background:rgba(204,0,0,.15);color:#CC0000;border-radius:5px;padding:2px 7px;font-weight:600;display:inline-flex;align-items:center;gap:4px">🏢 Cedo ${r.cedoIni&&r.cedoFim?r.cedoIni+'→'+r.cedoFim:''} <span style="opacity:.8">${fmtHE(r.heCedo)}</span></span>`:'';
+      const heHorario=(r.heIni&&r.heFim)?r.heIni+' → '+r.heFim:'';
+      const cedoBadge=(r.chegouCedo&&(r.heCedo||0)>0)?'<span style="font-size:11px;background:rgba(204,0,0,.15);color:#CC0000;border-radius:5px;padding:2px 7px;font-weight:600;display:inline-flex;align-items:center;gap:4px">🏢 Cedo '+(r.cedoIni&&r.cedoFim?r.cedoIni+'→'+r.cedoFim:'')+' <span style="opacity:.8">'+fmtHE(r.heCedo)+'</span></span>':'';
       return `<div style="padding:6px 0;border-bottom:1px solid var(--border)">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
           <div style="min-width:0;font-size:12px;flex:1">
             <span style="color:var(--dim)">${fmtData(r.data)}</span>
-            ${r.heAvulsa?`<span style="font-weight:600;margin-left:8px;background:rgba(204,0,0,.12);color:#CC0000;border-radius:4px;padding:1px 6px">Avulsa</span>`:(r.osNum?`<span style="font-weight:600;margin-left:8px">OS ${r.osNum}</span>`:'')}
-            ${r.motivoHE?`<span style="margin-left:6px;color:var(--dim)">${r.motivoHE}</span>`:''}
-            ${r.evento?`<span style="margin-left:6px;color:var(--dim)">${r.evento}</span>`:''}
-            ${r.local?`<span style="margin-left:6px;color:var(--dim)">📍 ${r.local}</span>`:''}
+            ${r.heAvulsa?'<span style="font-weight:600;margin-left:8px;background:rgba(204,0,0,.12);color:#CC0000;border-radius:4px;padding:1px 6px">Avulsa</span>':(r.osNum?'<span style="font-weight:600;margin-left:8px">OS '+r.osNum+'</span>':'')}
+            ${r.motivoHE?'<span style="margin-left:6px;color:var(--dim)">'+r.motivoHE+'</span>':''}
+            ${r.evento?'<span style="margin-left:6px;color:var(--dim)">'+r.evento+'</span>':''}
+            ${r.local?'<span style="margin-left:6px;color:var(--dim)">📍 '+r.local+'</span>':''}
             <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-              ${(r.heOperador||0)>0?`<span style="font-size:12px;background:rgba(234,179,8,.1);color:var(--yellow);border-radius:5px;padding:2px 7px;font-weight:600">⏱ ${fmtHE(r.heOperador)}${heHorario?' ('+heHorario+')':''} → R$ ${valHE.toFixed(2)}</span>`:''}
+              ${(r.heOperador||0)>0?'<span style="font-size:12px;background:rgba(234,179,8,.1);color:var(--yellow);border-radius:5px;padding:2px 7px;font-weight:600">⏱ '+fmtHE(r.heOperador)+(heHorario?' ('+heHorario+')':'')+' → R$ '+valHE.toFixed(2)+'</span>':''}
               ${cedoBadge}
-              ${(r.refeicoes||0)>0?`<span style="font-size:12px;background:rgba(16,185,129,.1);color:#10b981;border-radius:5px;padding:2px 7px;font-weight:600">🍽 ×${r.refeicoes} → R$ ${valRef.toFixed(2)}</span>`:''}
+              ${(r.refeicoes||0)>0?'<span style="font-size:12px;background:rgba(16,185,129,.1);color:#10b981;border-radius:5px;padding:2px 7px;font-weight:600">🍽 ×'+r.refeicoes+' → R$ '+valRef.toFixed(2)+'</span>':''}
             </div>
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0">
@@ -3246,37 +3220,16 @@ function gerarHE(){
           <div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${regsComHE.length} ocorrência${regsComHE.length!==1?'s':''} · R$${valorHora.toFixed(2)}/h HE</div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          ${totalHE>0?`<div style="text-align:right"><div style="font-size:11px;color:var(--dim)">HE</div><div style="font-size:18px;font-weight:700;color:var(--yellow)">${fmtHE(totalHE)}</div><div style="font-size:12px;color:var(--yellow);font-weight:600">R$ ${totalValorHE.toFixed(2)}</div></div>`:''}
-          ${totalRef>0?`<div style="text-align:right"><div style="font-size:11px;color:var(--dim)">Refeições</div><div style="font-size:18px;font-weight:700;color:#10b981">×${totalRef}</div><div style="font-size:12px;color:#10b981;font-weight:600">R$ ${totalValorRef.toFixed(2)}</div></div>`:''}
+          ${totalHE>0?'<div style="text-align:right"><div style="font-size:11px;color:var(--dim)">HE</div><div style="font-size:18px;font-weight:700;color:var(--yellow)">'+fmtHE(totalHE)+'</div><div style="font-size:12px;color:var(--yellow);font-weight:600">R$ '+totalValorHE.toFixed(2)+'</div></div>':''}
+          ${totalRef>0?'<div style="text-align:right"><div style="font-size:11px;color:var(--dim)">Refeições</div><div style="font-size:18px;font-weight:700;color:#10b981">×'+totalRef+'</div><div style="font-size:12px;color:#10b981;font-weight:600">R$ '+totalValorRef.toFixed(2)+'</div></div>':''}
         </div>
       </div>
       <div style="border-top:1px solid var(--border);padding-top:6px">${linhasHE}</div>
 
-      ${descontosOp.length?`
-      <div style="border-top:1px solid rgba(239,68,68,.2);margin-top:8px;padding-top:8px">
-        <div style="font-size:11px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">🔻 Descontos aplicados</div>
-        ${descontosOp.map(d=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">
-          <div style="font-size:12px">
-            <span style="color:#f87171;font-weight:600">− R$ ${d.valor.toFixed(2)}</span>
-            <span style="color:var(--dim);margin-left:8px">${d.motivo}</span>
-            ${d.criadoPor?`<span style="color:var(--dim);font-size:10px;margin-left:6px">por ${d.criadoPor}</span>`:''}
-          </div>
-          <button onclick="removerDescontoHE('${u.id}','${mes}','${d.id}')" style="background:none;border:none;color:var(--red-light);font-size:15px;cursor:pointer;padding:0 4px" title="Remover desconto">×</button>
-        </div>`).join('')}
-        <div style="text-align:right;margin-top:6px;font-size:12px;color:#f87171;font-weight:700">Total descontado: R$ ${totalDesconto.toFixed(2)}</div>
-      </div>`:''}
+      ${descontosOp.length?'<div style="border-top:1px solid rgba(239,68,68,.2);margin-top:8px;padding-top:8px">'+'<div style="font-size:11px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">🔻 Descontos aplicados</div>'+descontosOp.map(d=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border)">'+'<div style="font-size:12px">'+'<span style="color:#f87171;font-weight:600">− R$ '+d.valor.toFixed(2)+'</span>'+'<span style="color:var(--dim);margin-left:8px">'+d.motivo+'</span>'+(d.criadoPor?'<span style="color:var(--dim);font-size:10px;margin-left:6px">por '+d.criadoPor+'</span>':'')+'</div>'+'<button onclick="removerDescontoHE(\''+u.id+'\',\''+mes+'\',\''+d.id+'\')" style="background:none;border:none;color:var(--red-light);font-size:15px;cursor:pointer;padding:0 4px" title="Remover desconto">×</button>'+'</div>').join('')+'<div style="text-align:right;margin-top:6px;font-size:12px;color:#f87171;font-weight:700">Total descontado: R$ '+totalDesconto.toFixed(2)+'</div>'+'</div>':''}
 
       <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px">
-        ${totalDesconto>0?`
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px">
-          <span style="color:var(--dim)">Subtotal bruto</span>
-          <span style="color:var(--dim)">R$ ${(totalValorHE+totalValorRef).toFixed(2)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px">
-          <span style="color:#f87171">Descontos</span>
-          <span style="color:#f87171">− R$ ${totalDesconto.toFixed(2)}</span>
-        </div>`:''}
+        ${totalDesconto>0?'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px"><span style="color:var(--dim)">Subtotal bruto</span><span style="color:var(--dim)">R$ '+(totalValorHE+totalValorRef).toFixed(2)+'</span></div>'+'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px"><span style="color:#f87171">Descontos</span><span style="color:#f87171">− R$ '+totalDesconto.toFixed(2)+'</span></div>':''}
         <div style="display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:13px;font-weight:700;color:var(--fg)">Total a pagar</span>
           <span style="font-size:17px;font-weight:700;color:var(--green)">R$ ${Math.max(0,totalValorHE+totalValorRef-totalDesconto).toFixed(2)}</span>
@@ -3304,14 +3257,14 @@ function gerarHE(){
     <div class="metric-card"><div class="metric-label">Total HE R$</div><div class="metric-value" style="color:var(--green)">${totalValorHEGeral>0?'R$ '+totalValorHEGeral.toFixed(2):'—'}</div></div>
     <div class="metric-card"><div class="metric-label">Refeições</div><div class="metric-value" style="color:#10b981">${totalRefGeral>0?'×'+totalRefGeral:'—'}</div></div>
     <div class="metric-card"><div class="metric-label">Total Refeições R$</div><div class="metric-value" style="color:#10b981">${totalValorRefGeral>0?'R$ '+totalValorRefGeral.toFixed(2):'—'}</div></div>
-    ${totalDescontoGeral>0?`<div class="metric-card"><div class="metric-label">Descontos</div><div class="metric-value" style="color:#f87171">− R$ ${totalDescontoGeral.toFixed(2)}</div></div>`:''}
+    ${totalDescontoGeral>0?'<div class="metric-card"><div class="metric-label">Descontos</div><div class="metric-value" style="color:#f87171">− R$ '+totalDescontoGeral.toFixed(2)+'</div></div>':''}
     <div class="metric-card" style="${totalDescontoGeral>0?'border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.06)':''}"><div class="metric-label">Total a Pagar</div><div class="metric-value" style="color:var(--green);font-size:18px">${(totalValorHEGeral+totalValorRefGeral)>0?'R$ '+Math.max(0,totalValorHEGeral+totalValorRefGeral-totalDescontoGeral).toFixed(2):'—'}</div></div>
   </div>
   <div class="card">
     <div class="card-title">Detalhamento — ${nomeMes}</div>
     ${semHE
-      ? `<div style="text-align:center;color:var(--dim);font-size:13px;padding:16px 0">Nenhum operador registrou HE neste mês.</div>`
-      : `<div style="display:flex;flex-direction:column;gap:10px">${cards}</div>`
+      ? '<div style="text-align:center;color:var(--dim);font-size:13px;padding:16px 0">Nenhum operador registrou HE neste mês.</div>'
+      : '<div style="display:flex;flex-direction:column;gap:10px">'+cards+'</div>'
     }
   </div>`;
 }
@@ -3423,7 +3376,7 @@ function renderRelatorioHE(){
       <div class="metric-card"><div class="metric-label">Média/pessoa</div><div class="metric-value" style="color:var(--dim);font-size:15px">R$ ${(dado.total/lista.length).toFixed(2)}</div></div>
       <div class="metric-card"><div class="metric-label">Maior gasto</div><div class="metric-value" style="color:#f87171;font-size:13px">${[...lista].sort((a,b)=>b.valor-a.valor)[0]?.nome.split(' ')[0]||'—'} · R$ ${[...lista].sort((a,b)=>b.valor-a.valor)[0]?.valor.toFixed(2)||'—'}</div></div>
     </div>
-    ${dado.nota?`<div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--yellow)">⚠️ ${dado.nota}</div>`:''}
+    ${dado.nota?'<div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--yellow)">⚠️ '+dado.nota+'</div>':''}
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div class="card-title" style="margin:0">Ranking de Horas — ${dado.label}</div>
@@ -3478,8 +3431,8 @@ function renderRelatorioHE(){
         <div style="font-size:13px;font-weight:600">${medal} ${f.nome}</div>
         <div style="text-align:right;display:flex;gap:10px;flex-wrap:wrap">
           <span style="font-size:12px;color:var(--yellow);font-weight:700">⏱ ${fmtHE(f.horas)}</span>
-          ${f.refeicoes>0?`<span style="font-size:12px;color:#10b981">🍽 ×${f.refeicoes}</span>`:''}
-          ${f.desconto>0?`<span style="font-size:12px;color:#f87171">🔻 −R$ ${f.desconto.toFixed(2)}</span>`:''}
+          ${f.refeicoes>0?'<span style="font-size:12px;color:#10b981">🍽 ×'+f.refeicoes+'</span>':''}
+          ${f.desconto>0?'<span style="font-size:12px;color:#f87171">🔻 −R$ '+f.desconto.toFixed(2)+'</span>':''}
           <span style="font-size:13px;color:var(--green);font-weight:700">R$ ${f.liquido.toFixed(2)}</span>
         </div>
       </div>
@@ -3496,7 +3449,7 @@ function renderRelatorioHE(){
     <div class="metric-card"><div class="metric-label">Operadores c/ HE</div><div class="metric-value" style="color:var(--yellow)">${dadosOp.length}</div></div>
     <div class="metric-card"><div class="metric-label">Total Horas</div><div class="metric-value" style="color:var(--yellow)">${fmtHE(totalHGeral)}</div></div>
     <div class="metric-card"><div class="metric-label">Total Bruto</div><div class="metric-value" style="color:var(--dim);font-size:15px">R$ ${totalVGeral.toFixed(2)}</div></div>
-    ${totalDescGeral>0?`<div class="metric-card"><div class="metric-label">Descontos</div><div class="metric-value" style="color:#f87171">− R$ ${totalDescGeral.toFixed(2)}</div></div>`:''}
+    ${totalDescGeral>0?'<div class="metric-card"><div class="metric-label">Descontos</div><div class="metric-value" style="color:#f87171">− R$ '+totalDescGeral.toFixed(2)+'</div></div>':''}
     <div class="metric-card" style="border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.06)"><div class="metric-label">Total a Pagar</div><div class="metric-value" style="color:var(--green)">R$ ${Math.max(0,totalVGeral-totalDescGeral).toFixed(2)}</div></div>
   </div>
   <div class="card">
@@ -3525,7 +3478,7 @@ function abrirModalPDFOperador(){
         <label>Operador</label>
         <select id="pdf-op-id" style="width:100%;padding:10px 12px;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-size:13px">
           <option value="">Selecione o operador...</option>
-          ${operadores.map(u=>`<option value="${u.id}">${u.nome}</option>`).join('')}
+          ${operadores.map(u=>'<option value="'+u.id+'">'+u.nome+'</option>').join('')}
         </select>
       </div>
       <div class="field">
@@ -3703,7 +3656,7 @@ function gerarPDFOperador(){
 
 <!-- Texto declarativo -->
 <div style="font-size:9pt;line-height:1.6;color:#222;margin-bottom:8px;text-align:justify">
-  Pelo presente eu <strong>${op.nome.toUpperCase()}</strong>${cpfOp?`, CPF sob o n.º <strong>${cpfOp}</strong>,`:','} declaro que na data de hoje recebi
+  Pelo presente eu <strong>${op.nome.toUpperCase()}</strong>${cpfOp?', CPF sob o n.º <strong>'+cpfOp+'</strong>,':','} declaro que na data de hoje recebi
   o valor de <strong>R$ ${totalLiquido.toFixed(2)}</strong> (<em>${valorExtenso(totalLiquido)}</em>)
   referente ao pagamento por serviços prestados avulso no mês de <strong>${nomeMesCaps}</strong>,
   pago pela empresa <strong>SOS MÓVEL TRÊS R LTDA</strong>, inscrita no CNPJ: <strong>72.642.655/0001-74</strong>.
@@ -3753,15 +3706,9 @@ function gerarPDFOperador(){
       <td colspan="${nCols-1}" style="font-weight:700;text-transform:uppercase;font-size:8.5pt;letter-spacing:.3px">TOTAL GERAL</td>
       <td style="text-align:right;font-weight:900;font-size:10pt;color:#E8191A;white-space:nowrap;padding:5px 12px 5px 24px;min-width:120px">${fmtHE(totalHE)}</td>
     </tr>
-    ${totalValorRef>0?`<tr style="background:#fff">
-      <td colspan="${nCols-1}" style="color:#555;font-size:8pt">Refeições (${totalRef}× R$ 25,00)</td>
-      <td style="text-align:right;font-weight:700;white-space:nowrap;padding:4px 12px 4px 24px;min-width:120px">R$ ${totalValorRef.toFixed(2)}</td>
-    </tr>`:''}
+    ${totalValorRef>0?'<tr style="background:#fff"><td colspan="'+(nCols-1)+'" style="color:#555;font-size:8pt">Refeições ('+totalRef+'× R$ 25,00)</td><td style="text-align:right;font-weight:700;white-space:nowrap;padding:4px 12px 4px 24px;min-width:120px">R$ '+totalValorRef.toFixed(2)+'</td></tr>':''}
     ${descontosLinhas}
-    ${totalDesc>0?`<tr style="background:#fff3f3">
-      <td colspan="${nCols-1}" style="font-weight:700;color:#c0392b;font-size:8.5pt">TOTAL DESCONTOS</td>
-      <td style="text-align:right;font-weight:800;color:#c0392b;white-space:nowrap;padding:4px 12px 4px 24px;min-width:120px">− R$ ${totalDesc.toFixed(2)}</td>
-    </tr>`:''}
+    ${totalDesc>0?'<tr style="background:#fff3f3"><td colspan="'+(nCols-1)+'" style="font-weight:700;color:#c0392b;font-size:8.5pt">TOTAL DESCONTOS</td><td style="text-align:right;font-weight:800;color:#c0392b;white-space:nowrap;padding:4px 12px 4px 24px;min-width:120px">− R$ '+totalDesc.toFixed(2)+'</td></tr>':''}
     <tr style="background:#E8191A">
       <td colspan="${nCols-1}" style="font-weight:800;color:#fff;font-size:9.5pt;text-transform:uppercase;letter-spacing:.5px">A RECEBER</td>
       <td style="text-align:right;font-weight:900;color:#fff;font-size:11pt;white-space:nowrap;padding:6px 12px 6px 24px;min-width:120px">R$ ${totalLiquido.toFixed(2)}</td>
@@ -3778,7 +3725,7 @@ function gerarPDFOperador(){
 <div style="margin-top:48px;text-align:center">
   <div style="display:inline-block;border-top:1.5px solid #111;padding-top:8px;min-width:380px">
     <div style="font-size:9.5pt;font-weight:700;text-transform:uppercase">${op.nome}</div>
-    ${cpfOp?`<div style="font-size:8.5pt;color:#555;margin-top:2px">CPF: ${cpfOp}</div>`:''}
+    ${cpfOp?'<div style="font-size:8.5pt;color:#555;margin-top:2px">CPF: '+cpfOp+'</div>':''}
   </div>
 </div>
 
@@ -4184,24 +4131,8 @@ tbody td{padding:11px 14px;font-size:12px;font-weight:500;}
 <div id="tab-eventos" style="display:none"><div class="ct">
   <div class="stag">Análise de Eventos · ${nomeMes}</div>
   <div class="kg">${kpiEvHTML}</div>
-  ${byEv.length>0?`<div class="g2">
-    <div class="card"><h3>📅 Eventos por Operador</h3>
-      ${barSVG(byEv.map(f=>srt(f.nome)),byEv.map(f=>f.eventos),v=>v+'',PAL,24)}
-    </div>
-    <div class="card"><h3>⏱ HE Gerada em Eventos</h3>
-      ${barSVG(byEv.map(f=>srt(f.nome)),byEv.map(f=>f.totalHE),fmtH,'#9F7AEA',24)}
-    </div>
-  </div>
-  <div class="tc">
-    <div class="th2"><h3>Ranking de Eventos — ${nomeMes}</h3></div>
-    <table><thead><tr><th>#</th><th>Operador</th><th>Eventos</th><th>HE Gerada</th><th>Total a Pagar</th><th>Chegou Cedo</th></tr></thead>
-    <tbody>${tableEv}</tbody></table>
-  </div>`:''}
-  ${listaOS?`<div class="tc">
-    <div class="th2"><h3>Lista de OS / Eventos Externos — ${nomeMes}</h3></div>
-    <table><thead><tr><th>Data</th><th>OS / Evento</th><th>Local</th><th>Operador</th><th>HE</th></tr></thead>
-    <tbody>${listaOS}</tbody></table>
-  </div>`:''}
+  ${byEv.length>0?'<div class="g2"><div class="card"><h3>📅 Eventos por Operador</h3>'+barSVG(byEv.map(f=>srt(f.nome)),byEv.map(f=>f.eventos),v=>v+'',PAL,24)+'</div><div class="card"><h3>⏱ HE Gerada em Eventos</h3>'+barSVG(byEv.map(f=>srt(f.nome)),byEv.map(f=>f.totalHE),fmtH,'#9F7AEA',24)+'</div></div><div class="tc"><div class="th2"><h3>Ranking de Eventos — '+nomeMes+'</h3></div><table><thead><tr><th>#</th><th>Operador</th><th>Eventos</th><th>HE Gerada</th><th>Total a Pagar</th><th>Chegou Cedo</th></tr></thead><tbody>'+tableEv+'</tbody></table></div>':''}
+  ${listaOS?'<div class="tc"><div class="th2"><h3>Lista de OS / Eventos Externos — '+nomeMes+'</h3></div><table><thead><tr><th>Data</th><th>OS / Evento</th><th>Local</th><th>Operador</th><th>HE</th></tr></thead><tbody>'+listaOS+'</tbody></table></div>':''}
 </div></div>
 
 <script>
@@ -4421,7 +4352,7 @@ function _rhe_pdf_comparativo(){
       <tbody>${rows}</tbody>
       <tfoot><tr style="border-top:2px solid #444">
         <td style="padding:6px 8px;font-size:11px;font-weight:800;color:#fff">TOTAL</td>
-        ${Object.values(_heHistorico).map(d=>`<td style="text-align:right;padding:6px 8px;color:#e67e22;font-size:11px;font-weight:700">${fmtHE(d.horas)}</td><td style="text-align:right;padding:6px 8px;color:#2ecc71;font-size:11px;font-weight:700">R$ ${d.total.toFixed(2)}</td>`).join('')}
+        ${Object.values(_heHistorico).map(d=>'<td style="text-align:right;padding:6px 8px;color:#e67e22;font-size:11px;font-weight:700">'+fmtHE(d.horas)+'</td><td style="text-align:right;padding:6px 8px;color:#2ecc71;font-size:11px;font-weight:700">R$ '+d.total.toFixed(2)+'</td>').join('')}
         <td style="text-align:right;padding:6px 8px;color:#2ecc71;font-weight:800;font-size:13px">R$ ${Object.values(_heHistorico).reduce((a,d)=>a+d.total,0).toFixed(2)}</td>
       </tr></tfoot>
     </table>
@@ -4451,7 +4382,7 @@ function _rhe_comparativo(){
     <tbody>${rows}</tbody>
     <tfoot><tr style="border-top:2px solid var(--border)">
       <td style="padding:6px 8px;font-size:12px;font-weight:700">TOTAL</td>
-      ${Object.values(_heHistorico).map(d=>`<td style="text-align:right;padding:6px 8px;color:var(--yellow);font-size:12px;font-weight:700">${fmtHE(d.horas)}</td><td style="text-align:right;padding:6px 8px;color:var(--green);font-size:12px;font-weight:700">R$ ${d.total.toFixed(2)}</td>`).join('')}
+      ${Object.values(_heHistorico).map(d=>'<td style="text-align:right;padding:6px 8px;color:var(--yellow);font-size:12px;font-weight:700">'+fmtHE(d.horas)+'</td><td style="text-align:right;padding:6px 8px;color:var(--green);font-size:12px;font-weight:700">R$ '+d.total.toFixed(2)+'</td>').join('')}
       <td style="text-align:right;padding:6px 8px;color:var(--green);font-weight:700;font-size:13px">R$ ${Object.values(_heHistorico).reduce((a,d)=>a+d.total,0).toFixed(2)}</td>
     </tr></tfoot>
   </table></div>`;
@@ -4548,14 +4479,14 @@ function renderUsers(){
         <span style="font-weight:600">${u.nome}</span>
         <span style="color:var(--dim);font-size:12px"> · ${u.user} · </span>
         <span class="badge ${u.perfil==='admin'?'badge-red':u.perfil==='comercial'?'badge-blue':'badge-yellow'}" style="font-size:10px">${u.perfil}</span>
-        ${u.wpp?`<span style="color:#25D366;font-size:11px;margin-left:6px">📱 ${u.wpp}</span>`:''}
-        ${u.perfil==='operador'&&u.heValor?`<span style="color:var(--yellow);font-size:11px;margin-left:6px">R$${u.heValor}/h HE</span>`:''}
-        ${isMaster?`<span id="senha-chip-${u.id}" style="font-size:11px;color:var(--dim);margin-left:6px;font-family:monospace">••••••</span>`:''}
+        ${u.wpp?'<span style="color:#25D366;font-size:11px;margin-left:6px">📱 '+u.wpp+'</span>':''}
+        ${u.perfil==='operador'&&u.heValor?'<span style="color:var(--yellow);font-size:11px;margin-left:6px">R$'+u.heValor+'/h HE</span>':''}
+        ${isMaster?'<span id="senha-chip-'+u.id+'" style="font-size:11px;color:var(--dim);margin-left:6px;font-family:monospace">••••••</span>':''}
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        ${isMaster?`<button onclick="toggleSenhaChip('${u.id}','${u.senha}')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:15px;padding:2px 4px" title="Ver/ocultar senha">👁</button>`:''}
+        ${isMaster?'<button onclick="toggleSenhaChip(\''+u.id+'\',\''+u.senha+'\')" style="background:none;border:none;color:var(--dim);cursor:pointer;font-size:15px;padding:2px 4px" title="Ver/ocultar senha">👁</button>':''}
         <button onclick="editUser('${u.id}')" style="background:none;border:none;color:var(--blue,#3b82f6);cursor:pointer;font-size:14px;padding:2px 4px" title="Editar">✏️</button>
-        ${u.id!=='adm_0'?`<button onclick="delUser('${u.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:20px;line-height:1" title="Remover">×</button>`:'<span style="font-size:11px;color:var(--dim)">master</span>'}
+        ${u.id!=='adm_0'?'<button onclick="delUser(\''+u.id+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:20px;line-height:1" title="Remover">×</button>':'<span style="font-size:11px;color:var(--dim)">master</span>'}
       </div>
     </div>`).join('');
 }
@@ -4717,24 +4648,21 @@ function editarRegistroAdmin(regId){
     <div style="font-weight:700;font-size:13px;color:var(--text);margin:14px 0 8px;border-top:1px solid var(--border);padding-top:12px">⚡ Geradores</div>
     ${geradores.map((g,gi)=>{
       const gd=(r.geradoresReg||[]).find(x=>x.eqId===g.id)||{};
-      if(gd.standby&&!gd.rodou) return `<div style="font-size:12px;color:var(--yellow);padding:6px 0">⚡ ${g.potencia||'Gerador'} (${g.patrimonio||'—'}) — Stand-by (não rodou)</div>`;
+      if(gd.standby&&!gd.rodou) return '<div style="font-size:12px;color:var(--yellow);padding:6px 0">⚡ '+(g.potencia||'Gerador')+' ('+(g.patrimonio||'—')+') — Stand-by (não rodou)</div>';
       const hcVal=gd.hContratadas||12;
-      const hcOpts=[12,13,14,15,16,17,18,19,20,21,22,23,24].map(h=>`<option value="${h}"${h===hcVal?' selected':''}>${h}h</option>`).join('');
-      return `
-      <div style="background:var(--dark);border-radius:8px;padding:10px;margin-bottom:8px">
-        <div style="font-size:12px;font-weight:700;margin-bottom:8px">⚡ ${g.potencia||'Gerador'} (${g.patrimonio||'—'})</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div class="field" style="margin:0"><label style="font-size:11px">Liga</label><input type="time" id="ead-part-${gi}" value="${gd.part||''}"/></div>
-          <div class="field" style="margin:0"><label style="font-size:11px">Desliga</label><input type="time" id="ead-par-${gi}" value="${gd.par||''}"/></div>
-          <div class="field" style="margin:0"><label style="font-size:11px">Horímetro Inicial</label><input type="number" id="ead-hi-${gi}" step="0.1" value="${gd.horIni||''}"/></div>
-          <div class="field" style="margin:0"><label style="font-size:11px">Horímetro Final</label><input type="number" id="ead-hf-${gi}" step="0.1" value="${gd.horFim||''}"/></div>
-          <div class="field" style="margin:0"><label style="font-size:11px">Horas contratadas</label><select id="ead-hc-${gi}">${hcOpts}</select></div>
-          <div class="field" style="margin:0;display:flex;align-items:center;gap:6px;padding-top:18px">
-            <input type="checkbox" id="ead-meia-${gi}" ${gd.meiadiaria?'checked':''} style="width:16px;height:16px;accent-color:var(--blue)"/>
-            <label for="ead-meia-${gi}" style="font-size:11px;margin:0;cursor:pointer">Meia diária</label>
-          </div>
-        </div>
-      </div>`;
+      const hcOpts=[12,13,14,15,16,17,18,19,20,21,22,23,24].map(h=>'<option value="'+h+'"'+(h===hcVal?' selected':'')+'>'+h+'h</option>').join('');
+      return '<div style="background:var(--dark);border-radius:8px;padding:10px;margin-bottom:8px">'
+        +'<div style="font-size:12px;font-weight:700;margin-bottom:8px">⚡ '+(g.potencia||'Gerador')+' ('+(g.patrimonio||'—')+')</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+        +'<div class="field" style="margin:0"><label style="font-size:11px">Liga</label><input type="time" id="ead-part-'+gi+'" value="'+(gd.part||'')+'"/></div>'
+        +'<div class="field" style="margin:0"><label style="font-size:11px">Desliga</label><input type="time" id="ead-par-'+gi+'" value="'+(gd.par||'')+'"/></div>'
+        +'<div class="field" style="margin:0"><label style="font-size:11px">Horímetro Inicial</label><input type="number" id="ead-hi-'+gi+'" step="0.1" value="'+(gd.horIni||'')+'"/></div>'
+        +'<div class="field" style="margin:0"><label style="font-size:11px">Horímetro Final</label><input type="number" id="ead-hf-'+gi+'" step="0.1" value="'+(gd.horFim||'')+'"/></div>'
+        +'<div class="field" style="margin:0"><label style="font-size:11px">Horas contratadas</label><select id="ead-hc-'+gi+'">'+hcOpts+'</select></div>'
+        +'<div class="field" style="margin:0;display:flex;align-items:center;gap:6px;padding-top:18px">'
+        +'<input type="checkbox" id="ead-meia-'+gi+'" '+(gd.meiadiaria?'checked':'')+' style="width:16px;height:16px;accent-color:var(--blue)"/>'
+        +'<label for="ead-meia-'+gi+'" style="font-size:11px;margin:0;cursor:pointer">Meia diária</label>'
+        +'</div></div></div>';
     }).join('')}`:'';
 
   const pop=document.createElement('div');
@@ -4954,7 +4882,7 @@ function _gerarPDF(os, regsOS){
     <div class="reg-box">
       <div class="reg-header">
         <span class="reg-data">${fmtData(r.data)}</span>
-        ${heM>0?`<span class="badge-warn">⚠ HE MÁQUINA: +${fmtHE(heM)}</span>`:`<span class="badge-ok">✓ Dentro do contrato</span>`}
+        ${heM>0?'<span class="badge-warn">⚠ HE MÁQUINA: +'+fmtHE(heM)+'</span>':'<span class="badge-ok">✓ Dentro do contrato</span>'}
       </div>
       <div class="reg-grid">
         <div><span class="lbl">Liga</span><span class="val">${r.partida||'—'}</span></div>
@@ -4968,19 +4896,19 @@ function _gerarPDF(os, regsOS){
         <div><span class="lbl">Chegada evento</span><span class="val">${r.itinerarioChegada||'—'}</span></div>
         <div><span class="lbl">Saída evento</span><span class="val">${r.itinerarioSaidaVolta||'—'}</span></div>
         <div><span class="lbl">Chegada empresa</span><span class="val">${r.itinerarioChegadaVolta||'—'}</span></div>
-        ${heO>0?`<div class="span2"><span class="lbl">HE Operador</span><span class="val he-val">${fmtHE(heO)} → R$ ${valHE.toFixed(2)}</span></div>`:''}
-        ${(r.refeicoes||0)>0?`<div class="span2"><span class="lbl">Refeições (×${r.refeicoes})</span><span class="val" style="color:#059669;font-weight:700">R$ ${(r.valorRefeicao||r.refeicoes*25).toFixed(2)}</span></div>`:''}
-        ${r.obs?`<div class="span2"><span class="lbl">Observações</span><span class="val">${r.obs}</span></div>`:''}
+        ${heO>0?'<div class="span2"><span class="lbl">HE Operador</span><span class="val he-val">'+fmtHE(heO)+' → R$ '+valHE.toFixed(2)+'</span></div>':''}
+        ${(r.refeicoes||0)>0?'<div class="span2"><span class="lbl">Refeições (×'+r.refeicoes+')</span><span class="val" style="color:#059669;font-weight:700">R$ '+(r.valorRefeicao||r.refeicoes*25).toFixed(2)+'</span></div>':''}
+        ${r.obs?'<div class="span2"><span class="lbl">Observações</span><span class="val">'+r.obs+'</span></div>':''}
       </div>
       <div class="sig-row">
         <div class="sig-box">
           <div class="sig-title">ASSINATURA DO CLIENTE</div>
-          ${r.assinatura?`<img src="${r.assinatura}" class="sig-img"/>`:'<div class="sig-empty">Não coletada</div>'}
+          ${r.assinatura?'<img src="'+r.assinatura+'" class="sig-img"/>'  :'<div class="sig-empty">Não coletada</div>'}
           <div class="sig-name">${r.respCliente||''}</div>
         </div>
         <div class="sig-box">
           <div class="sig-title">ASSINATURA DO OPERADOR</div>
-          ${r.assinaturaOp?`<img src="${r.assinaturaOp}" class="sig-img"/>`:'<div class="sig-empty">Não coletada</div>'}
+          ${r.assinaturaOp?'<img src="'+r.assinaturaOp+'" class="sig-img"/>'  :'<div class="sig-empty">Não coletada</div>'}
           <div class="sig-name">${r.nomeOperador||r.operadorNome||''}</div>
         </div>
       </div>
@@ -5085,14 +5013,14 @@ function _gerarPDF(os, regsOS){
   <div class="info-row"><span class="info-lbl">CNPJ / CPF</span><span class="info-val">${os.cnpj||'—'}</span></div>
   <div class="info-row"><span class="info-lbl">Operador</span><span class="info-val">${os.operadorNome||'—'}</span></div>
   <div class="info-row"><span class="info-lbl">Período</span><span class="info-val">${os.dataSaida?fmtData(os.dataSaida):'—'} → ${os.dataRetorno?fmtData(os.dataRetorno):'—'}</span></div>
-  ${os.instrucoes?`<div class="info-row info-full"><span class="info-lbl">Instruções</span><span class="info-val">${os.instrucoes}</span></div>`:''}
+  ${os.instrucoes?'<div class="info-row info-full"><span class="info-lbl">Instruções</span><span class="info-val">'+os.instrucoes+'</span></div>':''}
 </div>
 
 <div class="sec-title">Equipamentos</div>
 <div style="padding:0 4px;margin-bottom:4px">
 ${(()=>{
   const eqs=os.equipamentos&&os.equipamentos.length?os.equipamentos:[];
-  if(!eqs.length) return `<div class="info-row"><span class="info-lbl">Gerador</span><span class="info-val">${os.potencia||'—'} · ${os.patrimonio||'—'}</span></div>`;
+  if(!eqs.length) return '<div class="info-row"><span class="info-lbl">Gerador</span><span class="info-val">'+(os.potencia||'—')+' · '+(os.patrimonio||'—')+'</span></div>';
   const geradores=eqs.filter(e=>e.tipo==='gerador');
   const acessorios=eqs.filter(e=>e.tipo==='acessorio');
   let html='';
@@ -5126,7 +5054,7 @@ ${(()=>{
   }
   if(acessorios.length){
     html+=`<div style="font-size:9px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:4px">Acessórios</div>`;
-    html+=`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">`+acessorios.map(a=>`<span style="background:#f3f4f6;border:1px solid #ddd;border-radius:4px;padding:2px 7px;font-size:9px">🔌 ${a.nome||'—'}${a.quantidade&&a.quantidade!='1'?' ×'+a.quantidade:''}</span>`).join('')+`</div>`;
+    html+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">'+acessorios.map(a=>'<span style="background:#f3f4f6;border:1px solid #ddd;border-radius:4px;padding:2px 7px;font-size:9px">🔌 '+(a.nome||'—')+(a.quantidade&&a.quantidade!='1'?' ×'+a.quantidade:'')+'</span>').join('')+'</div>';
   }
   return html;
 })()}
@@ -5178,10 +5106,7 @@ function loadHEAvulsa(){
 
     <div style="font-weight:700;font-size:13px;color:var(--text);margin:12px 0 8px">📋 Motivo da HE</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-      ${['Desmontagem','Ajudar a operar','Abastecer','Munkar'].map(m=>`
-      <label style="display:flex;align-items:center;gap:8px;background:var(--dark);border-radius:8px;padding:10px;cursor:pointer;font-size:13px">
-        <input type="radio" name="hav-motivo" value="${m}" style="accent-color:var(--blue);width:16px;height:16px"/> ${m}
-      </label>`).join('')}
+      ${['Desmontagem','Ajudar a operar','Abastecer','Munkar'].map(m=>'<label style="display:flex;align-items:center;gap:8px;background:var(--dark);border-radius:8px;padding:10px;cursor:pointer;font-size:13px">'+'<input type="radio" name="hav-motivo" value="'+m+'" style="accent-color:var(--blue);width:16px;height:16px"/> '+m+'</label>').join('')}
       <label style="display:flex;align-items:center;gap:8px;background:var(--dark);border-radius:8px;padding:10px;cursor:pointer;font-size:13px;grid-column:1/-1" onclick="document.getElementById('hav-motivo-outro-wrap').style.display=this.querySelector('input').checked?'none':'block'">
         <input type="radio" name="hav-motivo" value="__outro__" style="accent-color:var(--blue);width:16px;height:16px" onchange="document.getElementById('hav-motivo-outro-wrap').style.display='block';document.getElementById('hav-motivo-outro').focus()"/> Outro (descreva)
       </label>
@@ -5213,20 +5138,7 @@ function loadHEAvulsa(){
     <button class="btn btn-primary" onclick="salvarHEAvulsa()" style="margin-top:4px">💾 Registrar HE</button>
   </div>
 
-  ${minhasHEAvulsas.length?`
-  <div class="card" style="margin-top:8px">
-    <div class="card-title" style="font-size:13px">Minhas HE Avulsas</div>
-    ${minhasHEAvulsas.map(r=>`
-    <div style="border-bottom:1px solid var(--border);padding:10px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-      <div>
-        <div style="font-weight:700;font-size:13px">${fmtData(r.data)} <span style="color:var(--dim);font-weight:400;font-size:12px">· ${r.local||'—'}</span></div>
-        <div style="font-size:12px;color:var(--dim);margin-top:2px">${r.evento||'—'} · ${r.motivoHE||'—'}</div>
-        ${r.heOperador>0?`<span style="font-size:12px;background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.25);border-radius:6px;padding:2px 8px;display:inline-block;margin-top:4px">⏱ ${fmtHE(r.heOperador)} HE${r.heIni&&r.heFim?' · '+r.heIni+'→'+r.heFim:''}</span>`:''}
-        ${r.refeicoes>0?`<span style="font-size:12px;background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.25);border-radius:6px;padding:2px 8px;display:inline-block;margin-top:4px;margin-left:4px">🍽 ×${r.refeicoes}</span>`:''}
-      </div>
-      <button onclick="excluirHEAvulsa('${r.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;line-height:1;padding:0 4px" title="Excluir">×</button>
-    </div>`).join('')}
-  </div>`:''}`;
+  ${minhasHEAvulsas.length?'<div class="card" style="margin-top:8px"><div class="card-title" style="font-size:13px">Minhas HE Avulsas</div>'+minhasHEAvulsas.map(r=>'<div style="border-bottom:1px solid var(--border);padding:10px 0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'+'<div>'+'<div style="font-weight:700;font-size:13px">'+fmtData(r.data)+' <span style="color:var(--dim);font-weight:400;font-size:12px">· '+(r.local||'—')+'</span></div>'+'<div style="font-size:12px;color:var(--dim);margin-top:2px">'+(r.evento||'—')+' · '+(r.motivoHE||'—')+'</div>'+(r.heOperador>0?'<span style="font-size:12px;background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.25);border-radius:6px;padding:2px 8px;display:inline-block;margin-top:4px">⏱ '+fmtHE(r.heOperador)+' HE'+(r.heIni&&r.heFim?' · '+r.heIni+'→'+r.heFim:'')+'</span>':'')+(r.refeicoes>0?'<span style="font-size:12px;background:rgba(16,185,129,.1);color:#10b981;border:1px solid rgba(16,185,129,.25);border-radius:6px;padding:2px 8px;display:inline-block;margin-top:4px;margin-left:4px">🍽 ×'+r.refeicoes+'</span>':'')+'</div>'+'<button onclick="excluirHEAvulsa(\''+r.id+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:18px;line-height:1;padding:0 4px" title="Excluir">×</button>'+'</div>').join('')+'</div>':''}`;
 
   // Preview dinâmico de horas
   const calcPreview=()=>{
@@ -5370,19 +5282,15 @@ function loadHistorico(){
           <span style="font-weight:700">OS ${os.num}</span>
           <div style="display:flex;gap:6px;align-items:center">
             ${regsOS.length&&totalHEh>0
-              ? `<span class="badge badge-yellow">⚠️ ${fmtHE(totalHEh)} HE</span>`
-              : regsOS.length?`<span class="badge badge-green">✓ Sem HE</span>`:''}
-            ${rascunhosOS.length?`<span class="badge badge-yellow">📝 ${rascunhosOS.length} rascunho${rascunhosOS.length>1?'s':''}</span>`:''}
+              ? '<span class="badge badge-yellow">⚠️ '+fmtHE(totalHEh)+' HE</span>'
+              : regsOS.length?'<span class="badge badge-green">✓ Sem HE</span>':''}
+            ${rascunhosOS.length?'<span class="badge badge-yellow">📝 '+rascunhosOS.length+' rascunho'+(rascunhosOS.length>1?'s':'')+'</span>':''}
             <span class="badge ${os.status==='fechada'?'badge-green':enviadosOS.length?'badge-green':'badge-yellow'}">${os.status==='fechada'?'Fechada':enviadosOS.length?'✓ Enviada':'Aguardando'}</span>
           </div>
         </div>
         <div style="font-size:14px;color:var(--dim);margin-bottom:3px">${os.cliente}${os.evento?' · '+os.evento:''}</div>
         <div style="font-size:12px;color:var(--dim)">${os.dataSaida} → ${os.dataRetorno}</div>
-        ${regsOS.length?`<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
-          ${regsOS.map(r=>`<div style="font-size:12px;color:var(--dim);margin-bottom:4px">
-            📋 ${fmtData(r.data)} · Liga: ${r.partida} → Desliga: ${r.parada} · ${(r.totalHoras||0).toFixed(1)}h
-          </div>`).join('')}
-        </div>`:''}
+        ${regsOS.length?'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+regsOS.map(r=>'<div style="font-size:12px;color:var(--dim);margin-bottom:4px">📋 '+fmtData(r.data)+' · Liga: '+r.partida+' → Desliga: '+r.parada+' · '+(r.totalHoras||0).toFixed(1)+'h</div>').join('')+'</div>':''}
       </div>`;
     }).join('')}
   </div>`;
