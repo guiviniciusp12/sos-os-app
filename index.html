@@ -1336,19 +1336,13 @@ function buildOpForm(os){
       <div class="card-title">OS ${os.num}</div>
       <table class="tbl">
         <tr><td style="color:var(--dim)">Cliente</td><td><strong>${os.cliente}</strong></td></tr>
-        ${os.evento?`<tr><td style="color:var(--dim)">Evento</td><td>${os.evento}</td></tr>`:''}
+        ${os.evento?'<tr><td style="color:var(--dim)">Evento</td><td>'+os.evento+'</td></tr>':''}
         <tr><td style="color:var(--dim)">Local</td><td>${os.endereco||''} ${os.cidade?'— '+os.cidade:''}${os.uf?'/'+os.uf:''}</td></tr>
         <tr><td style="color:var(--dim)">Equipamentos</td><td>${renderEquipTexto(os)}</td></tr>
-        ${os.instrucoes?`<tr><td style="color:var(--dim)">Instruções</td><td style="white-space:pre-line">${os.instrucoes}</td></tr>`:''}
+        ${os.instrucoes?'<tr><td style="color:var(--dim)">Instruções</td><td style="white-space:pre-line">'+os.instrucoes+'</td></tr>':''}
       </table>
     </div>
-    ${os.tipoLocacao&&os.tipoLocacao!=='evento'?`
-    <div style="background:rgba(204,0,0,.08);border:1px solid rgba(204,0,0,.2);border-radius:10px;padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;color:#CC0000;margin-bottom:4px">📅 Locação ${os.tipoLocacao.charAt(0).toUpperCase()+os.tipoLocacao.slice(1)}</div>
-      <div style="font-size:12px;color:var(--dim)">Esta OS não requer registro de horímetro. Colete apenas a assinatura do cliente.</div>
-    </div>
-    <button class="btn btn-primary" onclick="opIniciarLocacaoPeriodica()">Coletar Assinatura →</button>`:`
-    <button class="btn btn-primary" onclick="opStep(1)">Iniciar Registro →</button>`}
+    ${(os.tipoLocacao&&os.tipoLocacao!=='evento')?'<div style="background:rgba(204,0,0,.08);border:1px solid rgba(204,0,0,.2);border-radius:10px;padding:12px;margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:#CC0000;margin-bottom:4px">📅 Locação '+os.tipoLocacao.charAt(0).toUpperCase()+os.tipoLocacao.slice(1)+'</div><div style="font-size:12px;color:var(--dim)">Esta OS não requer registro de horímetro. Colete apenas a assinatura do cliente.</div></div><button class="btn btn-primary" onclick="opIniciarLocacaoPeriodica()">Coletar Assinatura →</button>':'<button class="btn btn-primary" onclick="opStep(1)">Iniciar Registro →</button>'}
     <button class="btn btn-ghost" style="margin-top:8px" onclick="loadOperador()">← Voltar</button>
   </div>
   <!-- Step 1: Horários + Acessórios -->
@@ -1356,141 +1350,126 @@ function buildOpForm(os){
     ${(()=>{
       const temGerador=(os.equipamentos&&os.equipamentos.some(e=>e.tipo==='gerador'))||(os.potencia&&!os.equipamentos?.length);
       const geradores=(os.equipamentos||[]).filter(e=>e.tipo==='gerador');
-      return temGerador?`
-    <div class="card">
-      <div class="card-title">Registro do Dia</div>
-      <div class="field"><label>Data</label><input type="date" id="op-data" value="${hoje}" onchange="atualizarPrevisaoHint()"/></div>
-      ${geradores.map((g,gi)=>`
-      <div style="border:1px solid ${g.standby?'rgba(234,179,8,.3)':'var(--border)'};border-radius:10px;padding:12px;margin-bottom:10px;background:${g.standby?'rgba(234,179,8,.04)':'transparent'}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;flex-wrap:wrap">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span style="font-weight:700;font-size:13px">⚡ ${g.potencia||'Gerador'}</span>
-            ${g.atuacao?'<span style="font-size:12px;color:var(--dim)">— '+g.atuacao+'</span>':''}
-            <div style="display:flex;align-items:center;gap:4px">
-              <span style="font-size:11px;color:var(--dim)">GG</span>
-              <input id="g-patrimonio-${gi}" type="text" value="${g.patrimonio?g.patrimonio.replace(/^GG/i,'').trim():''}" placeholder="042" maxlength="6" style="width:54px;padding:3px 6px;font-size:12px;font-weight:700;border:1px solid ${g.patrimonio?'var(--red)':'var(--border)'};border-radius:6px;background:var(--card2);color:${g.patrimonio?'var(--fg)':'var(--dim)'};text-transform:uppercase" oninput="this.style.borderColor=this.value?'var(--red)':'var(--border)';this.style.color=this.value?'var(--fg)':'var(--dim)'" title="Número do patrimônio (GG)"/>
-            </div>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            ${g.standby?`<span style="background:rgba(234,179,8,.15);color:var(--yellow);font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid rgba(234,179,8,.3)">STAND-BY</span>`:''}
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);border-radius:20px;padding:2px 8px">
-              <input type="checkbox" id="g-meia-${gi}" onchange="calcHEGerador(${gi})" style="width:13px;height:13px;accent-color:var(--blue);cursor:pointer"/>
-              <span style="font-size:11px;font-weight:700;color:var(--blue);white-space:nowrap">½ DIÁRIA</span>
-            </label>
-          </div>
-        </div>
-        <div id="prev-hint-${gi}" style="margin-bottom:8px"></div>
-        ${g.standby?`
-        <div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(234,179,8,.08);border-radius:8px;margin-bottom:4px">
-          <input type="checkbox" id="g-rodou-${gi}" onchange="toggleStandbyRodou(${gi})" style="width:16px;height:16px;accent-color:var(--yellow);cursor:pointer"/>
-          <label for="g-rodou-${gi}" style="font-size:12px;color:var(--dim);cursor:pointer;margin:0">Este stand-by foi acionado e rodou hoje</label>
-        </div>
-        <div id="g-campos-${gi}" style="display:none">
-          <div class="grid2" style="margin-top:8px">
-            <div class="field" style="margin:0 0 6px"><label style="font-size:11px">Liga</label><input type="time" id="g-part-${gi}" oninput="calcHEGerador(${gi})"/></div>
-            <div class="field" style="margin:0 0 6px"><label style="font-size:11px">Desliga</label><input type="time" id="g-par-${gi}" oninput="calcHEGerador(${gi})"/></div>
-            <div class="field" style="margin:0 0 6px"><label style="font-size:11px">Horímetro Inicial</label><input type="number" id="g-hi-${gi}" step="0.1" placeholder="0.0" oninput="calcHEGerador(${gi})"/></div>
-            <div class="field" style="margin:0 0 6px"><label style="font-size:11px">Horímetro Final</label><input type="number" id="g-hf-${gi}" step="0.1" placeholder="Auto"/></div>
-          </div>
-          <div class="he-warn" id="g-he-warn-${gi}"><strong style="color:var(--yellow)">⚠️ HE de máquina</strong><p id="g-he-txt-${gi}" style="font-size:13px;margin-top:4px"></p></div>
-        </div>`:`
-        <div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(204,0,0,.07);border:1px solid rgba(204,0,0,.2);border-radius:8px;margin-bottom:8px">
-          <input type="checkbox" id="g-nao-rodou-${gi}" onchange="toggleNaoRodou(${gi})" style="width:16px;height:16px;accent-color:var(--red-light);cursor:pointer"/>
-          <label for="g-nao-rodou-${gi}" style="font-size:12px;color:var(--red-light);cursor:pointer;margin:0;font-weight:600">🚫 Gerador não rodou hoje</label>
-        </div>
-        <div id="g-campos-normal-${gi}">
-          <div class="grid2">
-            <div class="field" style="margin:0 0 6px"><label style="font-size:11px">Liga</label><input type="time" id="g-part-${gi}" oninput="calcHEGerador(${gi})"/></div>
-            <div class="field" style="margin:0 0 6px"><label style="font-size:11px">Desliga</label><input type="time" id="g-par-${gi}" oninput="calcHEGerador(${gi})"/></div>
-            <div class="field" style="margin:0 0 6px"><label style="font-size:11px">Horímetro Inicial</label><input type="number" id="g-hi-${gi}" step="0.1" placeholder="0.0" oninput="calcHEGerador(${gi})"/></div>
-            <div class="field" style="margin:0 0 6px"><label style="font-size:11px">Horímetro Final</label><input type="number" id="g-hf-${gi}" step="0.1" placeholder="Auto"/></div>
-          </div>
-          <div class="he-warn" id="g-he-warn-${gi}"><strong style="color:var(--yellow)">⚠️ HE de máquina</strong><p id="g-he-txt-${gi}" style="font-size:13px;margin-top:4px"></p></div>
-        </div>`}
-      </div>`).join('')}
-      <input type="hidden" id="op-part" value=""/>
-      <input type="hidden" id="op-par" value=""/>
-      <input type="hidden" id="op-hi" value=""/>
-      <input type="hidden" id="op-hf" value=""/>
-      <div id="he-periodo-container">
-        <div style="display:flex;align-items:center;gap:10px;margin:16px 0 12px">
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-          <span style="font-size:11px;font-weight:700;color:var(--yellow);letter-spacing:.8px;white-space:nowrap">⏱ HORA EXTRA DO OPERADOR</span>
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-        </div>
-        <div class="grid2">
-          <div class="field"><label>Início da HE</label><input type="time" id="op-he-ini" oninput="calcHE()"/></div>
-          <div class="field"><label>Fim da HE</label><input type="time" id="op-he-fim" oninput="calcHE()"/></div>
-        </div>
-        <p style="font-size:11px;color:var(--dim);margin-top:-6px;margin-bottom:8px">Preencha apenas se houver HE. Seg-Sex das 18h às 08h | Sáb a partir das 12h.</p>
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:8px;margin-bottom:6px;cursor:pointer" onclick="toggleCedoCampos()">
-          <input type="checkbox" id="op-chegou-cedo" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer" onclick="event.stopPropagation();toggleCedoCampos()"/>
-          <label for="op-chegou-cedo" style="font-size:12px;color:var(--blue);cursor:pointer;margin:0;font-weight:600">Chegou mais cedo na empresa?</label>
-        </div>
-        <div id="op-cedo-container" style="display:none;margin-bottom:8px">
-          <div class="grid2">
-            <div class="field" style="margin-bottom:6px"><label>Chegada na empresa</label><input type="time" id="op-cedo-ini"/></div>
-            <div class="field" style="margin-bottom:6px"><label>Saída da empresa</label><input type="time" id="op-cedo-fim"/></div>
-          </div>
-          <p style="font-size:11px;color:var(--dim);margin-top:-4px;margin-bottom:4px">Horas antes das 08h contam como HE e serão somadas automaticamente.</p>
-        </div>
-        <div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 12px;margin-top:4px">
-          <div style="font-size:11px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">🍽 Refeições durante a HE</div>
-          <div style="display:flex;align-items:center;gap:12px">
-            ${refStepperHTML('op-ref',0)}
-            <span style="font-size:12px;color:var(--dim)">refeição(ões) · R$ 25,00 cada</span>
-          </div>
-          <p style="font-size:11px;color:var(--dim);margin:8px 0 0">Use + e − para indicar quantas refeições foram feitas durante a HE.</p>
-        </div>
-      </div>
-      <div class="field" style="margin-top:12px">
-        <label>Gerador foi abastecido?</label>
-        <select id="op-abastecido" onchange="toggleAbastecimento()">
-          <option value="nao">Não</option>
-          <option value="sim">Sim</option>
-        </select>
-      </div>
-      <div id="op-litros-container" style="display:none">
-        <div class="field">
-          <label>Quantos litros?</label>
-          <input type="number" id="op-litros" min="0" step="1" placeholder="Ex: 100"/>
-        </div>
-      </div>
-      <div class="field" style="margin-top:12px"><label>Observações</label><textarea id="op-obs" placeholder="Ocorrências, abastecimento, solicitações..."></textarea></div>
-    </div>` : `
-    <div class="card">
-      <div class="card-title">Registro do Dia</div>
-      <div class="field"><label>Data</label><input type="date" id="op-data" value="${hoje}"/></div>
-      <div style="background:rgba(204,0,0,.08);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:10px;font-size:12px;color:var(--dim);margin-bottom:8px">
-        ℹ️ Esta OS não possui gerador — apenas acessórios. Não há horímetro ou cálculo de horas.
-      </div>
-      <input type="hidden" id="op-part" value="00:00"/>
-      <input type="hidden" id="op-par" value="00:00"/>
-      <input type="hidden" id="op-hi" value=""/>
-      <input type="hidden" id="op-hf" value=""/>
-      <div style="display:flex;align-items:center;gap:10px;margin:16px 0 12px">
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-        <span style="font-size:11px;font-weight:700;color:var(--yellow);letter-spacing:.8px;white-space:nowrap">⏱ HORA EXTRA DO OPERADOR</span>
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-      </div>
-      <div class="grid2">
-        <div class="field"><label>Início da HE</label><input type="time" id="op-he-ini" oninput="calcHE()"/></div>
-        <div class="field"><label>Fim da HE</label><input type="time" id="op-he-fim" oninput="calcHE()"/></div>
-      </div>
-      <p style="font-size:11px;color:var(--dim);margin-top:-6px;margin-bottom:8px">Preencha apenas se houver HE. Seg-Sex das 18h às 08h | Sáb a partir das 12h.</p>
-      <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:8px;margin-bottom:6px;cursor:pointer" onclick="toggleCedoCampos()">
-        <input type="checkbox" id="op-chegou-cedo" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer" onclick="event.stopPropagation();toggleCedoCampos()"/>
-        <label for="op-chegou-cedo" style="font-size:12px;color:var(--blue);cursor:pointer;margin:0;font-weight:600">Chegou mais cedo na empresa?</label>
-      </div>
-      <div id="op-cedo-container" style="display:none;margin-bottom:8px">
-        <div class="grid2">
-          <div class="field" style="margin-bottom:6px"><label>Chegada na empresa</label><input type="time" id="op-cedo-ini"/></div>
-          <div class="field" style="margin-bottom:6px"><label>Saída da empresa</label><input type="time" id="op-cedo-fim"/></div>
-        </div>
-        <p style="font-size:11px;color:var(--dim);margin-top:-4px;margin-bottom:4px">Horas antes das 08h contam como HE e serão somadas automaticamente.</p>
-      </div>
-      <div class="field"><label>Observações</label><textarea id="op-obs" placeholder="Ocorrências, solicitações..."></textarea></div>
-    </div>`;
+      const _geradoresHTML=geradores.map((g,gi)=>{
+        const _standbyBadge=g.standby?'<span style="background:rgba(234,179,8,.15);color:var(--yellow);font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid rgba(234,179,8,.3)">STAND-BY</span>':'';
+        const _atuacaoSpan=g.atuacao?'<span style="font-size:12px;color:var(--dim)">— '+g.atuacao+'</span>':'';
+        const _patrimonioVal=g.patrimonio?g.patrimonio.replace(/^GG/i,'').trim():'';
+        const _bordPatrimonio=g.patrimonio?'var(--red)':'var(--border)';
+        const _corPatrimonio=g.patrimonio?'var(--fg)':'var(--dim)';
+        const _bordContainer=g.standby?'rgba(234,179,8,.3)':'var(--border)';
+        const _bgContainer=g.standby?'rgba(234,179,8,.04)':'transparent';
+        const _camposStandby=g.standby?(
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(234,179,8,.08);border-radius:8px;margin-bottom:4px">'+
+          '<input type="checkbox" id="g-rodou-'+gi+'" onchange="toggleStandbyRodou('+gi+')" style="width:16px;height:16px;accent-color:var(--yellow);cursor:pointer"/>'+
+          '<label for="g-rodou-'+gi+'" style="font-size:12px;color:var(--dim);cursor:pointer;margin:0">Este stand-by foi acionado e rodou hoje</label>'+
+          '</div>'+
+          '<div id="g-campos-'+gi+'" style="display:none">'+
+          '<div class="grid2" style="margin-top:8px">'+
+          '<div class="field" style="margin:0 0 6px"><label style="font-size:11px">Liga</label><input type="time" id="g-part-'+gi+'" oninput="calcHEGerador('+gi+')"/></div>'+
+          '<div class="field" style="margin:0 0 6px"><label style="font-size:11px">Desliga</label><input type="time" id="g-par-'+gi+'" oninput="calcHEGerador('+gi+')"/></div>'+
+          '<div class="field" style="margin:0 0 6px"><label style="font-size:11px">Horímetro Inicial</label><input type="number" id="g-hi-'+gi+'" step="0.1" placeholder="0.0" oninput="calcHEGerador('+gi+')"/></div>'+
+          '<div class="field" style="margin:0 0 6px"><label style="font-size:11px">Horímetro Final</label><input type="number" id="g-hf-'+gi+'" step="0.1" placeholder="Auto"/></div>'+
+          '</div>'+
+          '<div class="he-warn" id="g-he-warn-'+gi+'"><strong style="color:var(--yellow)">⚠️ HE de máquina</strong><p id="g-he-txt-'+gi+'" style="font-size:13px;margin-top:4px"></p></div>'+
+          '</div>'
+        ):(
+          '<div style="display:flex;align-items:center;gap:8px;padding:8px;background:rgba(204,0,0,.07);border:1px solid rgba(204,0,0,.2);border-radius:8px;margin-bottom:8px">'+
+          '<input type="checkbox" id="g-nao-rodou-'+gi+'" onchange="toggleNaoRodou('+gi+')" style="width:16px;height:16px;accent-color:var(--red-light);cursor:pointer"/>'+
+          '<label for="g-nao-rodou-'+gi+'" style="font-size:12px;color:var(--red-light);cursor:pointer;margin:0;font-weight:600">🚫 Gerador não rodou hoje</label>'+
+          '</div>'+
+          '<div id="g-campos-normal-'+gi+'">'+
+          '<div class="grid2">'+
+          '<div class="field" style="margin:0 0 6px"><label style="font-size:11px">Liga</label><input type="time" id="g-part-'+gi+'" oninput="calcHEGerador('+gi+')"/></div>'+
+          '<div class="field" style="margin:0 0 6px"><label style="font-size:11px">Desliga</label><input type="time" id="g-par-'+gi+'" oninput="calcHEGerador('+gi+')"/></div>'+
+          '<div class="field" style="margin:0 0 6px"><label style="font-size:11px">Horímetro Inicial</label><input type="number" id="g-hi-'+gi+'" step="0.1" placeholder="0.0" oninput="calcHEGerador('+gi+')"/></div>'+
+          '<div class="field" style="margin:0 0 6px"><label style="font-size:11px">Horímetro Final</label><input type="number" id="g-hf-'+gi+'" step="0.1" placeholder="Auto"/></div>'+
+          '</div>'+
+          '<div class="he-warn" id="g-he-warn-'+gi+'"><strong style="color:var(--yellow)">⚠️ HE de máquina</strong><p id="g-he-txt-'+gi+'" style="font-size:13px;margin-top:4px"></p></div>'+
+          '</div>'
+        );
+        return '<div style="border:1px solid '+_bordContainer+';border-radius:10px;padding:12px;margin-bottom:10px;background:'+_bgContainer+'">'+
+          '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;flex-wrap:wrap">'+
+          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
+          '<span style="font-weight:700;font-size:13px">⚡ '+(g.potencia||'Gerador')+'</span>'+
+          _atuacaoSpan+
+          '<div style="display:flex;align-items:center;gap:4px">'+
+          '<span style="font-size:11px;color:var(--dim)">GG</span>'+
+          '<input id="g-patrimonio-'+gi+'" type="text" value="'+_patrimonioVal+'" placeholder="042" maxlength="6" style="width:54px;padding:3px 6px;font-size:12px;font-weight:700;border:1px solid '+_bordPatrimonio+';border-radius:6px;background:var(--card2);color:'+_corPatrimonio+';text-transform:uppercase" oninput="this.style.borderColor=this.value?\'var(--red)\':\' var(--border)\';this.style.color=this.value?\'var(--fg)\':\'var(--dim)\'" title="Número do patrimônio (GG)"/>'+
+          '</div></div>'+
+          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">'+
+          _standbyBadge+
+          '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25);border-radius:20px;padding:2px 8px">'+
+          '<input type="checkbox" id="g-meia-'+gi+'" onchange="calcHEGerador('+gi+')" style="width:13px;height:13px;accent-color:var(--blue);cursor:pointer"/>'+
+          '<span style="font-size:11px;font-weight:700;color:var(--blue);white-space:nowrap">½ DIÁRIA</span>'+
+          '</label></div></div>'+
+          '<div id="prev-hint-'+gi+'" style="margin-bottom:8px"></div>'+
+          _camposStandby+
+          '</div>';
+      }).join('');
+      const _heBlock=
+        '<div id="he-periodo-container">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin:16px 0 12px">'+
+        '<div style="flex:1;height:1px;background:var(--border)"></div>'+
+        '<span style="font-size:11px;font-weight:700;color:var(--yellow);letter-spacing:.8px;white-space:nowrap">⏱ HORA EXTRA DO OPERADOR</span>'+
+        '<div style="flex:1;height:1px;background:var(--border)"></div>'+
+        '</div>'+
+        '<div class="grid2">'+
+        '<div class="field"><label>Início da HE</label><input type="time" id="op-he-ini" oninput="calcHE()"/></div>'+
+        '<div class="field"><label>Fim da HE</label><input type="time" id="op-he-fim" oninput="calcHE()"/></div>'+
+        '</div>'+
+        '<p style="font-size:11px;color:var(--dim);margin-top:-6px;margin-bottom:8px">Preencha apenas se houver HE. Seg-Sex das 18h às 08h | Sáb a partir das 12h.</p>'+
+        '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:8px;margin-bottom:6px;cursor:pointer" onclick="toggleCedoCampos()">'+
+        '<input type="checkbox" id="op-chegou-cedo" style="width:15px;height:15px;accent-color:var(--blue);cursor:pointer" onclick="event.stopPropagation();toggleCedoCampos()"/>'+
+        '<label for="op-chegou-cedo" style="font-size:12px;color:var(--blue);cursor:pointer;margin:0;font-weight:600">Chegou mais cedo na empresa?</label>'+
+        '</div>'+
+        '<div id="op-cedo-container" style="display:none;margin-bottom:8px">'+
+        '<div class="grid2">'+
+        '<div class="field" style="margin-bottom:6px"><label>Chegada na empresa</label><input type="time" id="op-cedo-ini"/></div>'+
+        '<div class="field" style="margin-bottom:6px"><label>Saída da empresa</label><input type="time" id="op-cedo-fim"/></div>'+
+        '</div>'+
+        '<p style="font-size:11px;color:var(--dim);margin-top:-4px;margin-bottom:4px">Horas antes das 08h contam como HE e serão somadas automaticamente.</p>'+
+        '</div>'+
+        '<div style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 12px;margin-top:4px">'+
+        '<div style="font-size:11px;font-weight:700;color:#10b981;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">🍽 Refeições durante a HE</div>'+
+        '<div style="display:flex;align-items:center;gap:12px">'+
+        refStepperHTML('op-ref',0)+
+        '<span style="font-size:12px;color:var(--dim)">refeição(ões) · R$ 25,00 cada</span>'+
+        '</div>'+
+        '<p style="font-size:11px;color:var(--dim);margin:8px 0 0">Use + e − para indicar quantas refeições foram feitas durante a HE.</p>'+
+        '</div></div>';
+      if(temGerador){
+        return '<div class="card">'+
+        '<div class="card-title">Registro do Dia</div>'+
+        '<div class="field"><label>Data</label><input type="date" id="op-data" value="'+hoje+'" onchange="atualizarPrevisaoHint()"/></div>'+
+        _geradoresHTML+
+        '<input type="hidden" id="op-part" value=""/>'+
+        '<input type="hidden" id="op-par" value=""/>'+
+        '<input type="hidden" id="op-hi" value=""/>'+
+        '<input type="hidden" id="op-hf" value=""/>'+
+        _heBlock+
+        '<div class="field" style="margin-top:12px"><label>Gerador foi abastecido?</label>'+
+        '<select id="op-abastecido" onchange="toggleAbastecimento()">'+
+        '<option value="nao">Não</option><option value="sim">Sim</option>'+
+        '</select></div>'+
+        '<div id="op-litros-container" style="display:none"><div class="field"><label>Quantos litros?</label>'+
+        '<input type="number" id="op-litros" min="0" step="1" placeholder="Ex: 100"/></div></div>'+
+        '<div class="field" style="margin-top:12px"><label>Observações</label><textarea id="op-obs" placeholder="Ocorrências, abastecimento, solicitações..."></textarea></div>'+
+        '</div>';
+      } else {
+        return '<div class="card">'+
+        '<div class="card-title">Registro do Dia</div>'+
+        '<div class="field"><label>Data</label><input type="date" id="op-data" value="'+hoje+'"/></div>'+
+        '<div style="background:rgba(204,0,0,.08);border:1px solid rgba(139,92,246,.25);border-radius:8px;padding:10px;font-size:12px;color:var(--dim);margin-bottom:8px">'+
+        'ℹ️ Esta OS não possui gerador — apenas acessórios. Não há horímetro ou cálculo de horas.'+
+        '</div>'+
+        '<input type="hidden" id="op-part" value="00:00"/>'+
+        '<input type="hidden" id="op-par" value="00:00"/>'+
+        '<input type="hidden" id="op-hi" value=""/>'+
+        '<input type="hidden" id="op-hf" value=""/>'+
+        _heBlock+
+        '<div class="field"><label>Observações</label><textarea id="op-obs" placeholder="Ocorrências, solicitações..."></textarea></div>'+
+        '</div>';
+      }
     })()}
     ${renderAcessoriosOperador(os)}
     <button class="btn btn-primary" onclick="opStep(2)">Próximo: Transporte →</button>
@@ -1506,40 +1485,38 @@ function buildOpForm(os){
       const refPlaca=rascunhosOS[0]?.placa||'';
       const refMot=rascunhosOS[0]?.motorista||'';
       if(primeiroDia){
-        return `
-    <div class="card">
-      <div class="card-title">Transporte — Ida ao Evento</div>
-      <p style="font-size:12px;color:var(--dim);margin-bottom:10px">Preencha os dados da ida. A volta será registrada no último dia.</p>
-      <div class="grid2">
-        <div class="field"><label>Placa</label><input id="op-placa" style="text-transform:uppercase" placeholder="ABC-1234"/></div>
-        <div class="field"><label>Motorista</label><input id="op-mot" placeholder="Nome completo"/></div>
-      </div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);margin:10px 0 6px">🏢 → 📍 Ida ao evento</div>
-      <div class="grid2">
-        <div class="field"><label>Saída da empresa</label><input type="time" id="op-itin-saida"/></div>
-        <div class="field"><label>Chegada no evento</label><input type="time" id="op-itin-chegada"/></div>
-      </div>
-      <input type="hidden" id="op-itin-saida-volta"/>
-      <input type="hidden" id="op-itin-chegada-volta"/>
-    </div>`;
+        return '<div class="card">'+
+        '<div class="card-title">Transporte — Ida ao Evento</div>'+
+        '<p style="font-size:12px;color:var(--dim);margin-bottom:10px">Preencha os dados da ida. A volta será registrada no último dia.</p>'+
+        '<div class="grid2">'+
+        '<div class="field"><label>Placa</label><input id="op-placa" style="text-transform:uppercase" placeholder="ABC-1234"/></div>'+
+        '<div class="field"><label>Motorista</label><input id="op-mot" placeholder="Nome completo"/></div>'+
+        '</div>'+
+        '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);margin:10px 0 6px">🏢 → 📍 Ida ao evento</div>'+
+        '<div class="grid2">'+
+        '<div class="field"><label>Saída da empresa</label><input type="time" id="op-itin-saida"/></div>'+
+        '<div class="field"><label>Chegada no evento</label><input type="time" id="op-itin-chegada"/></div>'+
+        '</div>'+
+        '<input type="hidden" id="op-itin-saida-volta"/>'+
+        '<input type="hidden" id="op-itin-chegada-volta"/>'+
+        '</div>';
       } else {
-        return `
-    <div class="card">
-      <div class="card-title">Transporte — Volta para Empresa</div>
-      <p style="font-size:12px;color:var(--dim);margin-bottom:10px">Dados da ida já registrados. Preencha aqui a volta.</p>
-      <div class="grid2">
-        <div class="field"><label>Placa</label><input id="op-placa" style="text-transform:uppercase" value="${refPlaca}" placeholder="ABC-1234"/></div>
-        <div class="field"><label>Motorista</label><input id="op-mot" value="${refMot}" placeholder="Nome completo"/></div>
-      </div>
-      <input type="hidden" id="op-itin-saida"/>
-      <input type="hidden" id="op-itin-chegada"/>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);margin:10px 0 6px">📍 → 🏢 Volta para empresa</div>
-      <div class="grid2">
-        <div class="field"><label>Saída do evento</label><input type="time" id="op-itin-saida-volta"/></div>
-        <div class="field"><label>Chegada na empresa</label><input type="time" id="op-itin-chegada-volta"/></div>
-      </div>
-      <p style="font-size:11px;color:var(--dim);margin-top:6px">Dias intermediários não precisam de transporte.</p>
-    </div>`;
+        return '<div class="card">'+
+        '<div class="card-title">Transporte — Volta para Empresa</div>'+
+        '<p style="font-size:12px;color:var(--dim);margin-bottom:10px">Dados da ida já registrados. Preencha aqui a volta.</p>'+
+        '<div class="grid2">'+
+        '<div class="field"><label>Placa</label><input id="op-placa" style="text-transform:uppercase" value="'+refPlaca+'" placeholder="ABC-1234"/></div>'+
+        '<div class="field"><label>Motorista</label><input id="op-mot" value="'+refMot+'" placeholder="Nome completo"/></div>'+
+        '</div>'+
+        '<input type="hidden" id="op-itin-saida"/>'+
+        '<input type="hidden" id="op-itin-chegada"/>'+
+        '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--dim);margin:10px 0 6px">📍 → 🏢 Volta para empresa</div>'+
+        '<div class="grid2">'+
+        '<div class="field"><label>Saída do evento</label><input type="time" id="op-itin-saida-volta"/></div>'+
+        '<div class="field"><label>Chegada na empresa</label><input type="time" id="op-itin-chegada-volta"/></div>'+
+        '</div>'+
+        '<p style="font-size:11px;color:var(--dim);margin-top:6px">Dias intermediários não precisam de transporte.</p>'+
+        '</div>';
       }
     })()}
     <button class="btn btn-primary" onclick="opStep(3)">Próximo: Assinatura →</button>
