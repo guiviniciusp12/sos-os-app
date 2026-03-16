@@ -1214,13 +1214,13 @@ function verOS(id){
           (r.assinaturaOp?'<div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">Assinatura operador</div><img src="'+r.assinaturaOp+'" style="max-height:54px;max-width:160px;border-radius:6px;background:#fff"/></div>':'')+
         '</div>'+
         (isAdminView?'<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">'+
-          '<button class="btn btn-ghost btn-sm" style="width:auto;font-size:11px;color:var(--blue);border-color:rgba(59,130,246,.3)" onclick="editarRegistroAdmin(''+r.id+'')">✏️ Editar registro</button>'+
-          '<button class="btn btn-ghost btn-sm" style="width:auto;font-size:11px;color:var(--yellow);border-color:rgba(234,179,8,.3)" onclick="editarHEReg(''+r.id+'')">⏱ Editar HE</button>'+
+          '<button class="btn btn-ghost btn-sm" style="width:auto;font-size:11px;color:var(--blue);border-color:rgba(59,130,246,.3)" onclick="editarRegistroAdmin(\x27'+r.id+'\x27)">✏️ Editar registro</button>'+
+          '<button class="btn btn-ghost btn-sm" style="width:auto;font-size:11px;color:var(--yellow);border-color:rgba(234,179,8,.3)" onclick="editarHEReg(\x27'+r.id+'\x27)">⏱ Editar HE</button>'+
         '</div>':'')+
       '</div>').join(''):'<p style="color:var(--dim);font-size:13px">Nenhum registro ainda.</p>'}
   </div>
-  ${os.status!=='fechada'?'<button class="btn btn-green" onclick="fecharOSConf(''+os.id+'')">✓ Fechar OS</button>':''}
-  ${isAdminView?'<button class="btn btn-primary" style="margin-top:8px;background:#1a1a2e;border:1px solid var(--red)" onclick="gerarPDFOS(''+os.id+'')">📄 Gerar PDF da OS</button>':''}
+  ${os.status!=='fechada'?'<button class="btn btn-green" onclick="fecharOSConf(\x27'+os.id+'\x27)">✓ Fechar OS</button>':''}
+  ${isAdminView?'<button class="btn btn-primary" style="margin-top:8px;background:#1a1a2e;border:1px solid var(--red)" onclick="gerarPDFOS(\x27'+os.id+'\x27)">📄 Gerar PDF da OS</button>':''}
   <button class="btn btn-ghost" style="margin-top:8px;color:var(--red-light);border-color:rgba(204,0,0,.3)" onclick="excluirOS('${os.id}')">🗑 Excluir OS</button>
   <button class="btn btn-ghost" style="margin-top:8px" onclick="fecharDet()">← Voltar</button>`;
   } // fim _renderVerOS_inner
@@ -2183,8 +2183,8 @@ function _renderResumoOS(){
           (r.heOperador>0?'<span style="font-size:11px;color:var(--yellow);margin-left:6px">HE '+fmtHE(r.heOperador)+'</span>':'')+
         '</div>'+
         '<div style="display:flex;gap:6px;align-items:center">'+
-          '<button onclick="editarHERascunho(''+r.id+'')" style="background:rgba(204,0,0,.15);border:1px solid rgba(204,0,0,.25);color:#CC0000;border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer" title="Editar HE deste dia">✏️ HE</button>'+
-          '<button onclick="excluirRascunho(''+r.id+'')" style="background:none;border:none;color:var(--red-light);font-size:16px;cursor:pointer;padding:0 4px" title="Remover este dia">×</button>'+
+          '<button onclick="editarHERascunho(\x27'+r.id+'\x27)" style="background:rgba(204,0,0,.15);border:1px solid rgba(204,0,0,.25);color:#CC0000;border-radius:6px;font-size:11px;padding:3px 8px;cursor:pointer" title="Editar HE deste dia">✏️ HE</button>'+
+          '<button onclick="excluirRascunho(\x27'+r.id+'\x27)" style="background:none;border:none;color:var(--red-light);font-size:16px;cursor:pointer;padding:0 4px" title="Remover este dia">×</button>'+
         '</div>'+
       '</div>'+
       '<div style="margin-top:4px;font-size:11px;color:var(--dim)">'+
