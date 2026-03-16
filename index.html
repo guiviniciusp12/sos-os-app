@@ -5025,35 +5025,39 @@ ${(()=>{
   const acessorios=eqs.filter(e=>e.tipo==='acessorio');
   let html='';
   if(geradores.length){
-    html+=`<div style="font-size:9px;font-weight:700;color:#CC0000;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Geradores</div>`;
+    html+='<div style="font-size:9px;font-weight:700;color:#CC0000;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Geradores</div>';
     // Totais por OS
     const totalHorasRodadas=regsOS.reduce((acc,r)=>{
       const hi=parseFloat(r.horIni)||0;const hf=parseFloat(r.horFim)||0;
       return acc+(hf>hi?hf-hi:0);
     },0);
     const totalHEMaq=regsOS.reduce((a,r)=>a+(r.heMaquina||0),0);
-    html+=`<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:8px">
-      <thead><tr style="background:#f3f3f3">
-        <th style="padding:5px 8px;text-align:left;border:1px solid #ddd;font-size:9px;color:#555;text-transform:uppercase">Potência</th>
-        <th style="padding:5px 8px;text-align:left;border:1px solid #ddd;font-size:9px;color:#555;text-transform:uppercase">Patrimônio</th>
-        <th style="padding:5px 8px;text-align:right;border:1px solid #ddd;font-size:9px;color:#555;text-transform:uppercase">Horas rodadas</th>
-        <th style="padding:5px 8px;text-align:right;border:1px solid #ddd;font-size:9px;color:#856404;text-transform:uppercase">HE máquina</th>
-        <th style="padding:5px 8px;text-align:right;border:1px solid #ddd;font-size:9px;color:#CC0000;text-transform:uppercase">Valor HE</th>
-      </tr></thead>
-      <tbody>`+geradores.map(g=>{
+    html+='<table style="width:100%;border-collapse:collapse;font-size:10px;margin-bottom:8px">'+
+      '<thead><tr style="background:#f3f3f3">'+
+        '<th style="padding:5px 8px;text-align:left;border:1px solid #ddd;font-size:9px;color:#555;text-transform:uppercase">Potência</th>'+
+        '<th style="padding:5px 8px;text-align:left;border:1px solid #ddd;font-size:9px;color:#555;text-transform:uppercase">Patrimônio</th>'+
+        '<th style="padding:5px 8px;text-align:right;border:1px solid #ddd;font-size:9px;color:#555;text-transform:uppercase">Horas rodadas</th>'+
+        '<th style="padding:5px 8px;text-align:right;border:1px solid #ddd;font-size:9px;color:#856404;text-transform:uppercase">HE máquina</th>'+
+        '<th style="padding:5px 8px;text-align:right;border:1px solid #ddd;font-size:9px;color:#CC0000;text-transform:uppercase">Valor HE</th>'+
+      '</tr></thead>'+
+      '<tbody>'+geradores.map(g=>{
         const heVal=parseFloat(g.heValorGerador)||0;
         const valorHETotal=totalHEMaq*heVal;
-        return `<tr>
-          <td style="padding:5px 8px;border:1px solid #ddd;font-weight:700">⚡ ${g.potencia||'—'}</td>
-          <td style="padding:5px 8px;border:1px solid #ddd">${g.patrimonio||'—'}</td>
-          <td style="padding:5px 8px;border:1px solid #ddd;text-align:right">${totalHorasRodadas>0?fmtHE(totalHorasRodadas):'—'}</td>
-          <td style="padding:5px 8px;border:1px solid #ddd;text-align:right;font-weight:700;color:${totalHEMaq>0?'#856404':'#22c55e'}">${totalHEMaq>0?'+'+fmtHE(totalHEMaq)+' extra':'✓ Dentro contrato'}</td>
-          <td style="padding:5px 8px;border:1px solid #ddd;text-align:right;font-weight:700;color:${valorHETotal>0?'#CC0000':'#888'}">${heVal>0?(valorHETotal>0?'R$ '+valorHETotal.toFixed(2)+'<br/><span style="font-size:8px;font-weight:400;color:#888">R$ '+heVal.toFixed(2)+'/hora extra</span>':'R$ 0,00'):'<span style="color:#888">Não informado</span>'}</td>
-        </tr>`;
-      }).join('')+`</tbody></table>`;
+        const _corHEMaq=totalHEMaq>0?'#856404':'#22c55e';
+        const _corValHE=valorHETotal>0?'#CC0000':'#888';
+        const _txtHEMaq=totalHEMaq>0?'+'+fmtHE(totalHEMaq)+' extra':'✓ Dentro contrato';
+        const _txtValHE=heVal>0?(valorHETotal>0?'R$ '+valorHETotal.toFixed(2)+'<br/><span style="font-size:8px;font-weight:400;color:#888">R$ '+heVal.toFixed(2)+'/hora extra</span>':'R$ 0,00'):'<span style="color:#888">Não informado</span>';
+        return '<tr>'+
+          '<td style="padding:5px 8px;border:1px solid #ddd;font-weight:700">⚡ '+(g.potencia||'—')+'</td>'+
+          '<td style="padding:5px 8px;border:1px solid #ddd">'+(g.patrimonio||'—')+'</td>'+
+          '<td style="padding:5px 8px;border:1px solid #ddd;text-align:right">'+(totalHorasRodadas>0?fmtHE(totalHorasRodadas):'—')+'</td>'+
+          '<td style="padding:5px 8px;border:1px solid #ddd;text-align:right;font-weight:700;color:'+_corHEMaq+'">'+_txtHEMaq+'</td>'+
+          '<td style="padding:5px 8px;border:1px solid #ddd;text-align:right;font-weight:700;color:'+_corValHE+'">'+_txtValHE+'</td>'+
+        '</tr>';
+      }).join('')+'</tbody></table>';
   }
   if(acessorios.length){
-    html+=`<div style="font-size:9px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:4px">Acessórios</div>`;
+    html+='<div style="font-size:9px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;margin-top:4px">Acessórios</div>';
     html+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">'+acessorios.map(a=>'<span style="background:#f3f4f6;border:1px solid #ddd;border-radius:4px;padding:2px 7px;font-size:9px">🔌 '+(a.nome||'—')+(a.quantidade&&a.quantidade!='1'?' ×'+a.quantidade:'')+'</span>').join('')+'</div>';
   }
   return html;
@@ -5277,21 +5281,24 @@ function loadHistorico(){
         }
         return acc+heO;
       },0);
-      return `<div class="os-item" style="cursor:default">
-        <div class="os-item-header">
-          <span style="font-weight:700">OS ${os.num}</span>
-          <div style="display:flex;gap:6px;align-items:center">
-            ${regsOS.length&&totalHEh>0
-              ? '<span class="badge badge-yellow">⚠️ '+fmtHE(totalHEh)+' HE</span>'
-              : regsOS.length?'<span class="badge badge-green">✓ Sem HE</span>':''}
-            ${rascunhosOS.length?'<span class="badge badge-yellow">📝 '+rascunhosOS.length+' rascunho'+(rascunhosOS.length>1?'s':'')+'</span>':''}
-            <span class="badge ${os.status==='fechada'?'badge-green':enviadosOS.length?'badge-green':'badge-yellow'}">${os.status==='fechada'?'Fechada':enviadosOS.length?'✓ Enviada':'Aguardando'}</span>
-          </div>
-        </div>
-        <div style="font-size:14px;color:var(--dim);margin-bottom:3px">${os.cliente}${os.evento?' · '+os.evento:''}</div>
-        <div style="font-size:12px;color:var(--dim)">${os.dataSaida} → ${os.dataRetorno}</div>
-        ${regsOS.length?'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+regsOS.map(r=>'<div style="font-size:12px;color:var(--dim);margin-bottom:4px">📋 '+fmtData(r.data)+' · Liga: '+r.partida+' → Desliga: '+r.parada+' · '+(r.totalHoras||0).toFixed(1)+'h</div>').join('')+'</div>':''}
-      </div>`;
+      const _badgeStatus=(os.status==='fechada'||enviadosOS.length)?'badge-green':'badge-yellow';
+      const _txtStatus=os.status==='fechada'?'Fechada':enviadosOS.length?'✓ Enviada':'Aguardando';
+      const _badgeHE=(regsOS.length&&totalHEh>0)?'<span class="badge badge-yellow">⚠️ '+fmtHE(totalHEh)+' HE</span>':regsOS.length?'<span class="badge badge-green">✓ Sem HE</span>':'';
+      const _badgeRasc=rascunhosOS.length?'<span class="badge badge-yellow">📝 '+rascunhosOS.length+' rascunho'+(rascunhosOS.length>1?'s':'')+'</span>':'';
+      const _regsDetalhe=regsOS.length?'<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">'+regsOS.map(r=>'<div style="font-size:12px;color:var(--dim);margin-bottom:4px">📋 '+fmtData(r.data)+' · Liga: '+r.partida+' → Desliga: '+r.parada+' · '+(r.totalHoras||0).toFixed(1)+'h</div>').join('')+'</div>':'';
+      return '<div class="os-item" style="cursor:default">'+
+        '<div class="os-item-header">'+
+          '<span style="font-weight:700">OS '+os.num+'</span>'+
+          '<div style="display:flex;gap:6px;align-items:center">'+
+            _badgeHE+
+            _badgeRasc+
+            '<span class="badge '+_badgeStatus+'">'+_txtStatus+'</span>'+
+          '</div>'+
+        '</div>'+
+        '<div style="font-size:14px;color:var(--dim);margin-bottom:3px">'+os.cliente+(os.evento?' · '+os.evento:'')+'</div>'+
+        '<div style="font-size:12px;color:var(--dim)">'+os.dataSaida+' → '+os.dataRetorno+'</div>'+
+        _regsDetalhe+
+      '</div>';
     }).join('')}
   </div>`;
 }
