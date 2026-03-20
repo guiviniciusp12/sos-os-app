@@ -5379,16 +5379,11 @@ function atualizarBadgeHEMes(){
   // Só mostra para operadores logados
   if(!sessaoAtual||sessaoAtual.perfil!=='operador'){badge.style.display='none';return;}
   const mesAtual=new Date().toISOString().slice(0,7); // "YYYY-MM"
+  // Usa r.heOperador diretamente (mesmo critério do relatório admin)
+  // Inclui registros normais (enviados) e HE avulsa registrada pelo admin
   const totalHE=registros
-    .filter(r=>r.operadorId===sessaoAtual.id && r.data && r.data.startsWith(mesAtual))
-    .reduce((acc,r)=>{
-      let heH=0;
-      if(r.heIni&&r.heFim){
-        const hIniM=toMin(r.heIni),hFimM=toMin(r.heFim);
-        heH=(hFimM>hIniM?hFimM-hIniM:hFimM+1440-hIniM)/60;
-      } else { heH=r.heOperador||0; }
-      return acc+heH;
-    },0);
+    .filter(r=>r.operadorId===sessaoAtual.id && r.data && r.data.startsWith(mesAtual) && (r.status==='enviado'||r.heAvulsa))
+    .reduce((acc,r)=>acc+(r.heOperador||0),0);
   if(totalHE>0){
     badge.textContent=`⚡ ${fmtHE(totalHE)} HE no mês`;
     badge.style.display='inline-block';
